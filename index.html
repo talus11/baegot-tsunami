@@ -1,0 +1,1576 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>지진해일 살아남기: 배곧</title>
+<!-- v0.2: 휴대폰 화면 · 미니맵 · 화면 효과 · 효과음 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#0d0f13;--panel:#161a21;--line:#2a303a;--ink:#e9ecef;--sub:#9aa3ad;--red:#ff4d4f;--amber:#ffb020;--green:#3ecf8e;--blue:#4dabf7}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard Variable",Pretendard,system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+#app{max-width:560px;margin:0 auto;min-height:100dvh;position:relative}
+[hidden]{display:none!important}
+
+/* 시작 화면 */
+#start{padding:28px 18px 40px;display:flex;flex-direction:column;gap:16px;min-height:100dvh;justify-content:center;background:radial-gradient(120% 70% at 50% 0%,#1a2a3a 0%,var(--bg) 65%)}
+#start .kicker{color:var(--amber);font-weight:800;font-size:13px;letter-spacing:.08em}
+#start h1{margin:0;font-size:34px;line-height:1.15;font-weight:900}
+#start h1 small{display:block;font-size:17px;color:var(--sub);font-weight:600;margin-top:8px}
+#start .lead{color:#c9d0d8;line-height:1.65;margin:0}
+.warn{font-size:13px;color:var(--sub);background:#141821;border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:8px;padding:10px 12px;line-height:1.55}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;color:var(--sub);font-weight:700}
+.field input{background:#11141a;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit;color:var(--ink);font-size:16px}
+.seg{display:flex;gap:8px}
+.seg button{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:#11141a;cursor:pointer;font-weight:700}
+.seg button.on{border-color:var(--amber);background:#2a2110;color:#ffd38a}
+.big{padding:15px;border:0;border-radius:12px;background:var(--red);color:#fff;font-weight:900;font-size:17px;cursor:pointer}
+.big:active{transform:scale(.98)}
+
+/* 플레이 화면 */
+#play{display:flex;flex-direction:column;height:100dvh}
+.top{flex:none;display:flex;align-items:center;gap:10px;padding:10px 14px 6px}
+.top .chl{font-weight:900;font-size:14px;white-space:nowrap}
+.top .clock{white-space:nowrap}
+.top .clock{font-variant-numeric:tabular-nums;color:var(--sub);font-size:13px}
+.top .cd{margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:900;color:var(--red);font-size:14px;background:#2a1215;border:1px solid #5a1e24;border-radius:999px;padding:3px 10px}
+.top .cd.hot{animation:blink 1s steps(2) infinite}
+.top .snd{background:none;border:1px solid var(--line);border-radius:999px;padding:3px 9px;font-size:13px;cursor:pointer;color:var(--sub)}
+.top .cd+.snd{margin-left:0}
+.top .snd.solo{margin-left:auto}
+@keyframes blink{50%{opacity:.45}}
+.stats{flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:2px 14px 8px}
+.st{font-size:11px;color:var(--sub)}
+.st b{color:var(--ink);font-size:12px;font-variant-numeric:tabular-nums;float:right}
+.st i{display:block;height:5px;border-radius:3px;background:#232831;margin-top:3px;overflow:hidden}
+.st i u{display:block;height:100%;width:50%;transition:width .5s ease,background .5s}
+.st.flash{animation:sflash .7s}
+@keyframes sflash{0%,100%{}40%{color:#fff;text-shadow:0 0 8px #fff}}
+.pbar{flex:none;display:flex;gap:3px;padding:0 14px 8px}
+.pbar span{flex:1;font-size:10px;color:#5d6570;text-align:center;border-top:3px solid #232831;padding-top:3px;white-space:nowrap;overflow:hidden}
+.pbar span.done{border-color:#7a2f33;color:#8d5a5e}
+.pbar span.now{border-color:var(--red);color:#ffb3b5;font-weight:800}
+
+#scene{flex:none;position:relative;height:150px;margin:0 14px;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+#scene .bg{position:absolute;inset:0;transition:background .8s}
+#scene .ic{position:absolute;right:16px;bottom:8px;font-size:64px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.6));opacity:.9}
+#scene .pl{position:absolute;left:14px;bottom:12px;font-weight:900;font-size:17px;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+#scene .tm{position:absolute;left:14px;top:10px;font-size:12px;color:#d6dbe1;background:rgba(0,0,0,.35);border-radius:999px;padding:2px 9px;font-variant-numeric:tabular-nums}
+#scene.shake{animation:shake .18s infinite}
+body.quake #log{animation:shake .25s infinite}
+@keyframes shake{0%{transform:translate(0,0)}25%{transform:translate(-3px,2px)}50%{transform:translate(3px,-1px)}75%{transform:translate(-2px,-2px)}100%{transform:translate(1px,2px)}}
+.bg.class{background:linear-gradient(160deg,#28323f,#141a22 70%)}
+.bg.stairs{background:linear-gradient(160deg,#2f2a26,#16130f 70%)}
+.bg.gate{background:linear-gradient(160deg,#33302a,#17150f 70%)}
+.bg.yard{background:linear-gradient(170deg,#3a3b2c,#1a1c14 70%)}
+.bg.fence{background:linear-gradient(180deg,#5b6570,#2b3138 45%,#4d4a3c 46%,#1d1c15)}
+.bg.sea{background:linear-gradient(180deg,#6c7680,#38424c 40%,#5b5440 41%,#2b2719)}
+.bg.road{background:linear-gradient(170deg,#3a2220,#170e0d 70%)}
+.bg.apt{background:linear-gradient(170deg,#2b3140,#121520 70%)}
+.bg.hall{background:linear-gradient(160deg,#252b36,#0f1218 70%)}
+.bg.under{background:linear-gradient(170deg,#23282a,#0a0c0d 70%)}
+.bg.alert{background:linear-gradient(160deg,#5a1218,#1d0507 70%)!important}
+
+#log{flex:1;min-height:0;overflow-y:auto;padding:12px 16px 20px;scroll-behavior:smooth}
+#log .l{margin:0 0 9px;line-height:1.7;font-size:15.5px;color:#dfe4ea;animation:fin .35s ease}
+#log .l.q{color:#fff;font-weight:600}
+#log .l.res{color:#ffd9a8;border-left:3px solid #6b4a1f;padding-left:10px}
+#log .l.fx{font-size:12.5px;margin-top:-4px}
+#log .l.dim{color:var(--sub);font-size:13px}
+#log .chap{margin:6px 0 14px;font-weight:900;font-size:13px;color:var(--red);letter-spacing:.06em}
+#log .sms{margin:4px 0 12px;background:#1d1214;border:1px solid #5a1e24;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.55;animation:fin .35s ease}
+#log .sms b{display:block;color:#ff8a8c;font-size:12px;margin-bottom:3px}
+#log .sms.tsu{background:#2a0b0e;border-color:var(--red)}
+#log .chat{margin:4px 0 12px;animation:fin .35s ease}
+#log .chat .who{font-size:12px;color:var(--sub);margin:0 0 4px 2px}
+#log .chat p{display:table;margin:0 0 4px;background:#2a2f38;border-radius:4px 14px 14px 14px;padding:7px 11px;font-size:14.5px;max-width:85%}
+#log .chat p.me{margin-left:auto;background:#1f3a2c;border-radius:14px 4px 14px 14px}
+@keyframes fin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.fx span{display:inline-block;margin-right:6px;padding:1px 7px;border-radius:999px;font-weight:800}
+.fx .up{background:#123224;color:#8fe3bd}.fx .dn{background:#3a1416;color:#ff9c9c}
+
+/* 선택지 시트 */
+#sheet{flex:none;background:#14171d;border-top:1px solid #2b313b;border-radius:18px 18px 0 0;padding:10px 12px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -12px 32px rgba(0,0,0,.55);max-height:48dvh;overflow-y:auto}
+#sheet:empty{display:none}
+.tbar{height:6px;border-radius:3px;background:#2a1418;overflow:hidden;margin:2px 0 10px}
+.tbar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--red),var(--amber));transform-origin:left}
+.tlab{font-size:12px;color:#ffb3b5;font-weight:800;margin:0 0 4px;display:flex;justify-content:space-between}
+.ch{display:block;width:100%;text-align:left;padding:13px 14px;margin:0 0 8px;border-radius:12px;border:1px solid #333a46;background:#1d222b;cursor:pointer;font-size:15px;line-height:1.45}
+.ch:hover{border-color:#4a5363}
+.ch:active{background:#262c37}
+.ch .k{display:inline-block;width:22px;color:var(--amber);font-weight:900}
+.cont{display:block;width:100%;padding:13px;border-radius:12px;border:0;background:#2b3240;font-weight:800;cursor:pointer}
+
+/* 미니게임 */
+.mg h4{margin:2px 0 8px;font-size:15px}
+.mg .hint{font-size:13px;color:var(--sub);margin:0 0 10px;line-height:1.5}
+.meter{position:relative;height:16px;border-radius:8px;background:#1d222b;overflow:hidden;margin:0 0 8px;box-shadow:inset 0 0 0 1px #333a46}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--blue);width:0}
+.mstate{text-align:center;font-weight:900;margin:4px 0 10px;min-height:22px}
+.mstate.red{color:var(--red)}.mstate.go{color:var(--green)}
+.holdbtn{width:100%;min-height:88px;border-radius:14px;border:2px solid #4a5363;background:#1d2a3a;font-size:19px;font-weight:900;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.holdbtn.on{background:#0e1a12;border-color:var(--green);transform:scale(.98)}
+.holdbtn.danger{border-color:var(--red)}
+.steps{display:flex;justify-content:center;gap:6px;margin:6px 0 12px}
+.steps i{width:16px;height:16px;border-radius:50%;background:#262c37}
+.steps i.hit{background:var(--green)}.steps i.miss{background:#5a1e24}
+.foot{width:110px;height:110px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;font-size:46px;background:#1d222b;border:3px solid #333a46;transition:all .08s}
+.foot.lit{background:#1b3a2a;border-color:var(--green);transform:scale(1.06)}
+
+/* 알림 */
+#notif{position:fixed;left:50%;top:10px;transform:translate(-50%,-140%);width:calc(100% - 20px);max-width:540px;z-index:50;background:rgba(32,10,12,.97);border:1px solid var(--red);border-radius:16px;padding:12px 14px;box-shadow:0 10px 40px rgba(0,0,0,.7);transition:transform .35s cubic-bezier(.2,.9,.3,1.2)}
+#notif.show{transform:translate(-50%,0)}
+#notif .nh{display:flex;justify-content:space-between;font-size:12px;color:#ff8a8c;font-weight:800;margin-bottom:5px}
+#notif .nb{font-size:14.5px;line-height:1.5}
+#flash{position:fixed;inset:0;background:var(--red);opacity:0;pointer-events:none;z-index:40}
+#flash.on{animation:rflash 1.6s ease}
+@keyframes rflash{0%,30%,60%{opacity:.35}15%,45%,100%{opacity:0}}
+#card{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(5,6,8,.92);opacity:0;pointer-events:none;transition:opacity .4s}
+#card.on{opacity:1;pointer-events:auto}
+#card div{text-align:center}
+#card small{display:block;color:var(--red);font-weight:900;letter-spacing:.2em;font-size:13px;margin-bottom:8px}
+#card strong{font-size:30px;font-weight:900}
+#card p{color:var(--sub);margin:10px 0 0;font-variant-numeric:tabular-nums}
+
+/* 결과 */
+#result{padding:22px 16px 40px}
+#result .badge{display:inline-block;font-size:12px;font-weight:900;letter-spacing:.1em;padding:4px 10px;border-radius:999px;background:#2a1215;color:#ff9c9c;border:1px solid #5a1e24}
+#result .badge.ok{background:#11281d;color:#8fe3bd;border-color:#1e5a3d}
+#result h2{margin:10px 0 6px;font-size:26px;line-height:1.25}
+#result .where{color:var(--sub);margin:0 0 16px;line-height:1.6}
+#result section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 12px}
+#result h3{margin:0 0 8px;font-size:15px}
+#result ul{list-style:none;margin:0;padding:0}
+#result details summary{cursor:pointer;list-style:none;display:flex;gap:6px;padding:7px 0;line-height:1.45;font-size:14.5px}
+#result details summary::-webkit-details-marker{display:none}
+#result ul.ok summary::before{content:"✔";color:var(--green);font-weight:900}
+#result ul.no summary::before{content:"✘";color:var(--red);font-weight:900}
+#result details p{margin:0 0 9px 20px;padding:9px 11px;font-size:13.5px;line-height:1.6;color:#c5ccd6;background:#11141a;border-left:3px solid var(--line);border-radius:4px}
+#result .empty{color:var(--sub);font-size:13.5px}
+.rstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.rstats div{text-align:center;background:#11141a;border-radius:10px;padding:8px 4px}
+.rstats b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.rstats span{font-size:11px;color:var(--sub)}
+.teaser{border-left:3px solid var(--amber)!important}
+.src{font-size:12.5px;color:var(--sub);line-height:1.6}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- 시작 -->
+<section id="start">
+  <div class="kicker">살아남기 · 가상 재난 시뮬레이션</div>
+  <h1>지진해일 살아남기<small>배곧, 22분</small></h1>
+  <p class="lead">평일 오후 1시 51분. 배곧해솔중학교 본관 4층, 1학년 3반 교실.<br>5교시 과학 시간, 교탁 옆 휴대폰 보관함이 한꺼번에 울리기 시작한다.</p>
+  <div class="warn">이 게임은 <b>가상 시나리오</b>입니다. 서해는 수심이 얕아 실제로 큰 지진해일이 올 가능성은 낮습니다. 다만 지진·지진해일이 났을 때의 행동요령은 실제 국민행동요령을 바탕으로 합니다. <b>체험판: 1~5장</b></div>
+  <div class="field"><label for="nm">내 이름</label><input id="nm" maxlength="6" placeholder="이름 (최대 6자)" value=""></div>
+  <div class="field"><label>동생 지우가 나를 부르는 말</label>
+    <div class="seg" id="sibSeg"><button data-v="누나" class="on">누나</button><button data-v="형">형</button></div></div>
+  <button class="big" id="go">시작하기</button>
+</section>
+
+<!-- 플레이 -->
+<section id="play" hidden>
+  <div class="top">
+    <span class="chl" id="chLab">1장 · 흔들림</span>
+    <span class="clock" id="clock">13:51:40</span>
+    <span class="cd" id="cd" hidden>해일 도달까지 21:50</span>
+    <button class="snd solo" id="snd" aria-label="소리 켜기/끄기">🔊</button>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="pbar" id="pbar"></div>
+  <div id="scene"><div class="bg class" id="sbg"></div><div class="tm" id="stm"></div><div class="pl" id="spl"></div><div class="ic" id="sic"></div></div>
+  <div id="log"></div>
+  <div id="sheet"></div>
+</section>
+
+<!-- 결과 -->
+<section id="result" hidden></section>
+
+</div>
+<div id="notif"><div class="nh"><span id="nTitle">긴급재난문자</span><span id="nTime"></span></div><div class="nb" id="nBody"></div></div>
+<div id="flash"></div>
+<div id="card"><div><small id="cardK"></small><strong id="cardT"></strong><p id="cardP"></p></div></div>
+
+<script>
+/* ===================== 상태 ===================== */
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const V=x=>typeof x==='function'?x():x;
+const S={};
+function reset(){Object.assign(S,{hp:100,calm:70,bat:64,trust:50,f:{},delay:0,ok:[],no:[],cd:false,stage:0,name:S.name||'나',sib:S.sib||'누나'})}
+const T=s=>{const[h,m,x]=s.split(':').map(Number);return h*3600+m*60+(x||0)};
+const two=n=>String(n).padStart(2,'0');
+const hms=t=>two(Math.floor(t/3600))+':'+two(Math.floor(t%3600/60))+':'+two(t%60);
+const ms=t=>{t=Math.max(0,t);return two(Math.floor(t/60))+':'+two(t%60)};
+const ARRIVE=T('14:27:00');
+let cur=null,curCh=0,baseT=0;
+const clockNow=()=>baseT+S.delay;
+const remain=()=>ARRIVE-clockNow();
+const tpl=s=>String(s).replace(/\{name\}/g,S.name).replace(/\{sib\}/g,S.sib).replace(/\{bat\}/g,S.bat);
+
+const STATS=[['hp','체력','❤️'],['calm','침착','🧠'],['bat','배터리','🔋'],['trust','신뢰','🤝']];
+const STAGES=['흔들림','교내 대피','해일 경보','물이 들어온다','재회','첫날 밤'];
+const CHN={1:'흔들림',2:'교내 대피',3:'지진해일 경보',4:'물이 들어온다',5:'재회'};
+
+/* ===================== 소리 ===================== */
+let AC=null,sound=true;
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}return AC}
+function siren(dur=1.8,hi=false){const a=ac();if(!a||!sound)return;const o=a.createOscillator(),g=a.createGain();o.type='square';const t=a.currentTime;
+  for(let i=0;i<dur/0.3;i++){o.frequency.setValueAtTime(hi?960:880,t+i*0.3);o.frequency.setValueAtTime(hi?640:700,t+i*0.3+0.15)}
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.08,t+0.05);g.gain.setValueAtTime(0.08,t+dur-0.1);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur)}
+function ping(){const a=ac();if(!a||!sound)return;const o=a.createOscillator(),g=a.createGain();const t=a.currentTime;o.frequency.setValueAtTime(1320,t);o.frequency.setValueAtTime(990,t+0.08);
+  g.gain.setValueAtTime(0.06,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.25);o.connect(g).connect(a.destination);o.start(t);o.stop(t+0.26)}
+function rumble(dur=2){const a=ac();if(!a||!sound)return;const n=a.sampleRate*dur,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);let l=0;
+  for(let i=0;i<n;i++){l=(l+0.02*(Math.random()*2-1))/1.02;d[i]=l*3.5}
+  const s=a.createBufferSource(),g=a.createGain(),f=a.createBiquadFilter();f.type='lowpass';f.frequency.value=120;s.buffer=b;const t=a.currentTime;
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.9,t+0.3);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);s.connect(f).connect(g).connect(a.destination);s.start(t)}
+function tick(){const a=ac();if(!a||!sound)return;const o=a.createOscillator(),g=a.createGain();const t=a.currentTime;o.frequency.value=1800;g.gain.setValueAtTime(0.03,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);o.connect(g).connect(a.destination);o.start(t);o.stop(t+0.06)}
+const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
+
+/* ===================== 화면 갱신 ===================== */
+function drawStats(changed){
+  $('#stats').innerHTML=STATS.map(([k,n,e])=>{const v=S[k];const c=k==='bat'?(v<20?'var(--red)':v<40?'var(--amber)':'var(--green)'):(v<30?'var(--red)':v<55?'var(--amber)':k==='trust'?'var(--blue)':'var(--green)');
+    return `<div class="st${changed&&changed[k]?' flash':''}">${e} ${n}<b>${v}${k==='bat'?'%':''}</b><i><u style="width:${v}%;background:${c}"></u></i></div>`}).join('');
+}
+function drawStage(){ $('#pbar').innerHTML=STAGES.map((s,i)=>`<span class="${i<S.stage?'done':i===S.stage?'now':''}">${s}</span>`).join('') }
+function drawClock(){
+  $('#clock').textContent=hms(clockNow());
+  const cd=$('#cd');
+  if(S.cd){cd.hidden=false;const r=remain();cd.textContent='🌊 도달 '+ms(r);cd.classList.toggle('hot',r<300);$('#snd').classList.remove('solo')}
+  else{cd.hidden=true;$('#snd').classList.add('solo')}
+}
+let clockTimer=null;
+function startClock(){clearInterval(clockTimer);clockTimer=setInterval(()=>{ if(S.cd){S.delay+=1} drawClock() },1000)}
+
+let fast=false;
+const LOG=()=>$('#log');
+function scrollLog(){const l=LOG();l.scrollTop=l.scrollHeight}
+async function line(text,cls=''){
+  if(text==null)return; if(Array.isArray(text)){for(const t of text)await line(t,cls);return}
+  const t=tpl(text);const p=document.createElement('p');
+  let c='l '+cls; if(!cls && /^["「“]/.test(t)) c+=' q';
+  p.className=c;p.textContent=t;LOG().appendChild(p);scrollLog();
+  await sleep(fast?60:Math.min(1100,380+t.length*14));
+}
+function fxLine(d){
+  const keys=Object.keys(d).filter(k=>d[k]);if(!keys.length)return;
+  const p=document.createElement('p');p.className='l fx';
+  p.innerHTML=keys.map(k=>{const st=STATS.find(s=>s[0]===k);return `<span class="${d[k]>0?'up':'dn'}">${st[1]} ${d[k]>0?'+':'−'}${Math.abs(d[k])}${k==='bat'?'%':''}</span>`}).join('');
+  LOG().appendChild(p);scrollLog();
+}
+function apply(fx){
+  if(!fx)return {};const d={};
+  for(const k in fx){if(!(k in S))continue;const b=S[k];S[k]=Math.max(0,Math.min(100,S[k]+fx[k]));d[k]=S[k]-b}
+  drawStats(d);if(d.hp<0){buzz(120)}return d;
+}
+
+/* ===================== 알림 ===================== */
+async function notify(n){
+  n=V(n); if(!n)return;
+  const tsu=n.kind==='tsunami';
+  $('#nTitle').textContent=tsu?'⚠ 긴급재난문자 · 지진해일 경보':'⚠ 긴급재난문자';
+  $('#nTime').textContent=hms(clockNow()).slice(0,5);
+  $('#nBody').textContent=n.body;
+  $('#notif').classList.add('show');$('#flash').classList.remove('on');void $('#flash').offsetWidth;$('#flash').classList.add('on');
+  siren(tsu?2.6:1.8,tsu);buzz(tsu?[400,150,400,150,800]:[300,120,300]);
+  if(tsu){$('#sbg').classList.add('alert')}
+  const d=document.createElement('div');d.className='sms'+(tsu?' tsu':'');d.innerHTML=`<b>긴급재난문자 ${hms(clockNow()).slice(0,5)}</b>`;d.appendChild(document.createTextNode(n.body));
+  LOG().appendChild(d);scrollLog();
+  await sleep(fast?400:1800);
+  setTimeout(()=>$('#notif').classList.remove('show'),fast?600:2200);
+}
+async function chat(m){
+  m=V(m);if(!m)return;
+  const d=document.createElement('div');d.className='chat';d.innerHTML=`<div class="who">💬 ${tpl(m.from)}</div>`;LOG().appendChild(d);
+  for(const b of m.body){ping();buzz(60);const p=document.createElement('p');p.textContent=tpl(b);d.appendChild(p);scrollLog();await sleep(fast?120:650)}
+}
+function myReply(text){const d=document.createElement('div');d.className='chat';const p=document.createElement('p');p.className='me';p.textContent=tpl(text);d.appendChild(p);LOG().appendChild(d);scrollLog()}
+
+/* ===================== 진행 ===================== */
+async function chapterCard(n){
+  $('#cardK').textContent=n+'장';$('#cardT').textContent=CHN[n];$('#cardP').textContent=hms(clockNow());
+  $('#card').classList.add('on');await sleep(1700);$('#card').classList.remove('on');
+  $('#chLab').textContent=n+'장 · '+CHN[n];
+  const h=document.createElement('div');h.className='chap';h.textContent=`── ${n}장 · ${CHN[n]} ──`;LOG().appendChild(h);
+}
+async function go(id){
+  const sc=SC[id]; if(!sc){console.error('no scene',id);return}
+  cur=sc; fast=false; $('#sheet').innerHTML='';
+  baseT=Math.max(baseT,T(sc.t)); // 장면 시각
+  if(sc.ch!==curCh){curCh=sc.ch; if(sc.stage==null)S.stage=sc.ch-1; drawStage(); drawClock(); await chapterCard(sc.ch)}
+  if(sc.stage!=null){S.stage=sc.stage;drawStage()}
+  if(sc.cd)S.cd=true;
+  drawClock();
+  $('#sbg').className='bg '+(V(sc.bg)||'class');$('#spl').textContent=V(sc.place);$('#sic').textContent=sc.icon||'';$('#stm').textContent=sc.t.slice(0,5);
+  $('#scene').classList.toggle('shake',!!sc.shake);document.body.classList.toggle('quake',!!sc.shake);
+  if(sc.shake)rumble(sc.shakeLen||2.5);
+  if(sc.enter)sc.enter();
+  if(sc.notifFirst&&sc.notif)await notify(sc.notif);
+  for(const l of sc.lines||[]){await line(V(l))}
+  if(!sc.notifFirst&&sc.notif)await notify(sc.notif);
+  if(sc.msg)await chat(sc.msg);
+  $('#scene').classList.remove('shake');document.body.classList.remove('quake');
+  if(sc.over) return gameOver(sc.over);
+  if(sc.end) return finish(sc.end);
+  if(sc.mini) return runMini(sc);
+  if(sc.choices) return showChoices(sc);
+  if(sc.next) return showContinue(()=>go(V(sc.next)));
+}
+LOG().addEventListener('click',()=>{fast=true});
+
+function showContinue(fn,label='계속 ▶'){
+  const b=document.createElement('button');b.className='cont';b.textContent=label;
+  b.onclick=()=>{b.disabled=true;fn()};$('#sheet').innerHTML='';$('#sheet').appendChild(b);
+}
+let ctimer=null;
+function showChoices(sc){
+  const sh=$('#sheet');sh.innerHTML='';
+  const list=sc.choices.filter(c=>!c.cond||c.cond());
+  let tsec=sc.timer||0; if(tsec&&S.calm<30)tsec=Math.max(2,tsec-1);
+  if(tsec){
+    const lab=document.createElement('div');lab.className='tlab';lab.innerHTML=`<span>⏱ 빨리!${S.calm<30?' (손이 떨린다)':''}</span><span id="tl">${tsec.toFixed(1)}초</span>`;
+    const bar=document.createElement('div');bar.className='tbar';bar.innerHTML='<i id="ti"></i>';sh.append(lab,bar);
+  }
+  list.forEach((c,i)=>{const b=document.createElement('button');b.className='ch';b.innerHTML=`<span class="k">${'ABCDE'[i]}</span>`;b.appendChild(document.createTextNode(tpl(V(c.t))));
+    b.onclick=()=>pick(sc,c);sh.appendChild(b)});
+  if(tsec){
+    const t0=performance.now();let lastS=-1;
+    clearInterval(ctimer);ctimer=setInterval(()=>{const el=(performance.now()-t0)/1000,left=Math.max(0,tsec-el);
+      const ti=$('#ti'),tl=$('#tl');if(ti)ti.style.transform=`scaleX(${left/tsec})`;if(tl)tl.textContent=left.toFixed(1)+'초';
+      if(Math.ceil(left)!==lastS){lastS=Math.ceil(left);tick()}
+      if(left<=0){clearInterval(ctimer);const def=sc.choices[sc.def??0];const p=document.createElement('p');p.className='l dim';p.textContent='— 시간이 지났다. 몸이 먼저 움직인다.';LOG().appendChild(p);pick(sc,def)}
+    },50);
+  }
+}
+async function pick(sc,c){
+  clearInterval(ctimer);
+  $('#sheet').innerHTML='';
+  if(c.reply) myReply(V(c.t)); else { const p=document.createElement('p');p.className='l dim';p.textContent='▸ '+tpl(V(c.t));LOG().appendChild(p);scrollLog() }
+  const setv=V(c.set); if(setv)Object.assign(S.f,setv);
+  if(c.delay)S.delay+=c.delay;
+  await line(V(c.r),'res');
+  const d=apply(V(c.fx)); fxLine(d);
+  if(c.ok)S.ok.push(c.ok); if(c.no)S.no.push(c.no);
+  drawClock();
+  if(S.hp<=0)return gameOver({title:'쓰러졌다',text:['더 이상 몸이 말을 듣지 않는다.','누군가 내 이름을 부르는 소리가 멀어진다.']});
+  const nx=V(c.go)||V(sc.next);
+  showContinue(()=>go(nx));
+}
+
+/* ===================== 미니게임 ===================== */
+function runMini(sc){
+  const m=sc.mini; const done=async ok=>{
+    const o=ok?m.ok:m.fail;
+    await line(V(o.r),'res');fxLine(apply(o.fx));if(o.ok)S.ok.push(o.ok);if(o.no)S.no.push(o.no);
+    if(S.hp<=0)return gameOver({title:'쓰러졌다',text:['더 이상 몸이 말을 듣지 않는다.']});
+    showContinue(()=>go(V(sc.next)));
+  };
+  if(m.type==='hold')holdGame(done); else rhythmGame(done);
+}
+function holdGame(done){
+  const sh=$('#sheet');
+  sh.innerHTML=`<div class="mg"><h4>🕹 책상 다리를 놓치지 마</h4><p class="hint">버튼을 <b>누르고 있으면</b> 책상 다리를 붙잡는다. <b>강한 흔들림</b>이 올 때 손을 떼면 책상이 밀려난다.</p>
+  <div class="meter"><i id="hm"></i></div><div class="mstate" id="hs">버튼을 눌러 잡아!</div><button class="holdbtn" id="hb">✊ 꽉 잡기</button></div>`;
+  const hb=$('#hb'),hs=$('#hs'),hm=$('#hm');let held=false,fail=false,strongAcc=0;const DUR=9000;
+  const strong=[[2000,3300],[4600,5600],[6800,8200]];
+  const on=e=>{e.preventDefault();held=true;hb.classList.add('on')},off=e=>{e&&e.preventDefault();held=false;hb.classList.remove('on')};
+  hb.addEventListener('pointerdown',on);hb.addEventListener('pointerup',off);hb.addEventListener('pointerleave',off);hb.addEventListener('pointercancel',off);
+  hb.addEventListener('contextmenu',e=>e.preventDefault());
+  const kd=e=>{if(e.code==='Space'){on(e)}},ku=e=>{if(e.code==='Space'){off(e)}};addEventListener('keydown',kd);addEventListener('keyup',ku);
+  rumble(9.5);document.body.classList.add('quake');$('#scene').classList.add('shake');
+  const t0=performance.now();let last=t0;
+  const loop=now=>{const el=now-t0,dt=now-last;last=now;hm.style.width=Math.min(100,el/DUR*100)+'%';
+    const st=strong.some(([a,b])=>el>=a&&el<b);
+    hb.classList.toggle('danger',st);
+    if(st){hs.textContent='⚠ 강한 흔들림! 놓지 마!';hs.className='mstate red';if(!held){strongAcc+=dt;if(strongAcc>350)fail=true}else strongAcc=0;buzz(30)}
+    else{hs.textContent=held?'버티는 중…':'잡아! 곧 또 온다';hs.className='mstate'+(held?' go':'')}
+    if(fail||el>=DUR){removeEventListener('keydown',kd);removeEventListener('keyup',ku);document.body.classList.remove('quake');$('#scene').classList.remove('shake');
+      sh.innerHTML='';done(!fail);return}
+    requestAnimationFrame(loop)};
+  requestAnimationFrame(loop);
+}
+function rhythmGame(done){
+  const sh=$('#sheet');const N=14,GAP=720,WIN=460;
+  sh.innerHTML=`<div class="mg"><h4>🕹 한 칸씩</h4><p class="hint">발자국이 <b>초록색으로 빛날 때</b> 눌러서 함께 한 계단 오른다. 너무 빨리 누르면 휘청인다.</p>
+  <div class="foot" id="ft">👣</div><div class="steps" id="sp">${'<i></i>'.repeat(N)}</div><button class="holdbtn" id="rb">⬆ 한 칸</button></div>`;
+  const ft=$('#ft'),dots=[...document.querySelectorAll('#sp i')],rb=$('#rb');let i=-1,lit=false,hit=0,miss=0,got=false,t;
+  const tap=e=>{e&&e.preventDefault();if(lit&&!got){got=true;hit++;dots[i].className='hit';ft.classList.remove('lit');tick()}else{miss++;buzz(80);rb.classList.add('danger');setTimeout(()=>rb.classList.remove('danger'),200)}};
+  rb.addEventListener('pointerdown',tap);const kd=e=>{if(e.code==='Space')tap(e)};addEventListener('keydown',kd);
+  const step=()=>{i++;if(i>=N){removeEventListener('keydown',kd);sh.innerHTML='';done(hit>=9&&miss<5);return}
+    got=false;lit=true;ft.classList.add('lit');
+    setTimeout(()=>{lit=false;ft.classList.remove('lit');if(!got)dots[i].className='miss'},WIN);
+    t=setTimeout(step,GAP)};
+  setTimeout(step,900);
+}
+
+/* ===================== 끝 ===================== */
+function grade(e){
+  if(e&&e.danger)return '아직 위험하다';
+  const s=S.ok.length-S.no.length*2+(S.hp<50?-2:0);
+  let g=s>=8?3:s>=4?2:s>=0?1:0;
+  if(S.no.some(n=>n===NO_LEAVE||/해안|갯벌|영상을 찍었다/.test(n[0])))g=Math.min(g,1); // 학교 이탈·해안 접근은 최고 등급 불가
+  return ['운이 좋았다','아슬아슬하게 살아남았다','살아남았다','침착한 생존자'][g];
+}
+function resultHTML(head){
+  const li=(arr)=>arr.length?arr.map(([a,b])=>`<li><details><summary>${tpl(a)}</summary><p>${tpl(b)}</p></details></li>`).join(''):'<li class="empty">없음</li>';
+  return `${head}
+  <section><h3>지금 내 상태</h3><div class="rstats">${STATS.map(([k,n,e])=>`<div><b>${S[k]}${k==='bat'?'%':''}</b><span>${e} ${n}</span></div>`).join('')}</div></section>
+  <section><h3>잘한 행동 (${S.ok.length})</h3><ul class="ok">${li(S.ok)}</ul></section>
+  <section><h3>아쉬운 행동 (${S.no.length})</h3><ul class="no">${li(S.no)}</ul></section>
+  <section class="src"><b>행동요령 참고</b><br>행정안전부 국민재난안전포털 「지진 국민행동요령」·「지진해일 국민행동요령」, 기상청 지진·지진해일 특보 안내. 이야기와 배경은 가상입니다.</section>
+  <button class="big" id="again" style="width:100%">처음부터 다시</button>`;
+}
+function showResult(html){
+  clearInterval(clockTimer);clearInterval(ctimer);
+  $('#play').hidden=true;const r=$('#result');r.hidden=false;r.innerHTML=html;scrollTo(0,0);
+  $('#again').onclick=()=>{r.hidden=true;start()};
+}
+function finish(e){
+  e=V(e);
+  const head=`<span class="badge ${e.danger?'':'ok'}">${e.danger?'위험한 위치':'체험판 1~5장 완료'}</span>
+  <h2>${grade(e)}</h2>
+  <p class="where">${e.when||'15:30, 해가 기울 무렵'} {name}의 위치: <b style="color:var(--ink)">${e.loc}</b></p>
+  <section class="teaser"><h3>다음 이야기</h3><p style="margin:0;line-height:1.6;color:#c9d0d8">${e.teaser||'4장. 물이 들어온다 — 첫 물결. 그리고 물이 빠지자 "끝났다"며 내려가려는 사람들.'}</p></section>`;
+  showResult(tpl(resultHTML(head)));
+}
+function gameOver(o){
+  const head=`<span class="badge">게임 오버</span><h2>${o.title}</h2><section>${o.text.map(t=>`<p style="margin:0 0 6px;line-height:1.65">${tpl(t)}</p>`).join('')}</section>`;
+  showResult(tpl(resultHTML(head)));
+}
+
+/* ===================== 대본 ===================== */
+const NO_LEAVE=['대피 지시를 어기고 무리를 벗어났다','혼자 길에 나서면 길 위에서 해일을 만날 수 있다. 가족은 각자 있는 곳에서 가장 높은 곳으로 가는 게 서로를 지키는 방법이다.'];
+const SC={
+/* ---------- 1장 ---------- */
+p0:{ch:1,t:'13:51:40',place:'본관 4층 · 1학년 3반',icon:'🏫',bg:'class',lines:[
+ '창밖으로 아파트 동들이 벽처럼 서 있다. 저 너머 어딘가에 바다가 있지만, 이 교실에선 보이지 않는다.',
+ '5교시 과학. 박 선생님이 칠판에 「판의 경계」라고 쓴다.',
+ '하윤이 책상 밑으로 쪽지를 민다. 「매점 갈래? 종 치면 바로」',
+ '뒤에서 도준이 하품을 크게 한다. 누군가 킥킥 웃는다.',
+ '평범한 수요일 오후다.'],next:'c1_alert'},
+
+c1_alert:{ch:1,t:'13:51:52',place:'본관 4층 · 1학년 3반',icon:'📳',bg:'class',notifFirst:true,
+ notif:{kind:'alert',body:'[기상청] 13:51 서해 해역 지진 발생. 강한 흔들림이 예상됩니다. 낙하물로부터 몸을 보호하세요.'},
+ lines:['위이이이잉—','교탁 옆 휴대폰 보관함. 서른 개의 휴대폰이 동시에 비명을 지른다.','박 선생님의 분필이 멈춘다.','그 소리가 교실 안 모든 사람의 등을 한꺼번에 세운다.'],
+ timer:4,def:3,choices:[
+ {t:'책상 아래로 들어간다',r:'책상 밑에 몸을 넣는 순간, 바닥이 들린다.',fx:{calm:5},go:'c1_shake',
+  ok:['문자를 받자마자 책상 아래로 들어갔다','흔들림이 오기 전 몇 초가 가장 귀하다. 튼튼한 책상 아래로 들어가 다리를 꼭 잡고 몸을 보호한다.']},
+ {t:'보관함으로 가서 내 폰을 확인한다',r:'두 걸음 만에 바닥이 옆으로 미끄러진다. 교탁 모서리에 옆구리를 부딪친다.',fx:{hp:-15,calm:-10},go:'c1_open',
+  no:['흔들리기 직전 휴대폰을 가지러 갔다','문자를 확인하는 것보다 몸을 숨기는 게 먼저다. 흔들릴 때 걸어 다니면 넘어지고 부딪친다.']},
+ {t:'창가로 가서 밖을 본다',r:['아파트 옥상 위로 새 떼가 한꺼번에 날아오른다.','그리고 유리창이 덜컹거리기 시작한다.'],fx:{hp:-5},set:{glass:1},go:'c1_open',
+  no:['창가로 갔다','지진 때 유리창은 깨지기 쉽다. 창문·형광등·높은 가구에서 떨어진다.']},
+ {t:'그대로 굳어 앉아 있다',r:'"엎드려! 책상 밑으로!" 선생님 목소리에 그제야 몸이 움직인다. 한 박자 늦었다.',fx:{calm:-5},go:'c1_shake'}]},
+
+c1_shake:{ch:1,t:'13:52:00',place:'본관 4층 · 1학년 3반',icon:'💥',bg:'class',shake:true,shakeLen:4,lines:[
+ '쿠구구구궁—','소리가 아래에서 올라온다. 발바닥이 먼저 안다.','형광등이 그네처럼 흔들린다. 사물함 위 화분이 떨어져 깨진다.','4층이라서, 흔들림이 더 크다.'],
+ mini:{type:'hold',
+  ok:{r:'책상 다리를 끝까지 놓지 않았다. 책상이 나와 함께 버텼다.',fx:{calm:5},ok:['흔들리는 동안 책상 다리를 놓지 않았다','책상은 흔들림에 함께 미끄러진다. 다리를 붙잡고 있어야 몸이 책상 밖으로 드러나지 않는다.']},
+  fail:{r:['책상이 밀려났다.','형광등 덮개가 바로 옆에 떨어진다.'],fx:{hp:-10},no:['흔들릴 때 책상 다리를 놓쳤다','책상 아래에 들어가는 것만큼, 책상과 함께 버티는 것이 중요하다.']}},
+ next:'c1_hayun'},
+
+c1_open:{ch:1,t:'13:52:00',place:'본관 4층 · 1학년 3반',icon:'💥',bg:'class',shake:true,shakeLen:4,lines:[
+ '쿠구구구궁—','형광등이 그네처럼 흔들린다. 사물함 위 화분이 떨어져 깨진다.','책상 밑이 아니다. 몸이 그대로 드러나 있다.'],
+ timer:4,def:1,choices:[
+ {t:'가방이든 뭐든 머리를 감싸고 창문에서 떨어져 웅크린다',r:()=>S.f.glass?['창문이 깨진다. 유리 조각이 등에 쏟아진다.','머리는 감싼 덕분에 무사하다.']:'바닥에 웅크린다. 흔들림이 등을 두드린다.',fx:()=>S.f.glass?{hp:-10}:{},
+  ok:['몸이 드러난 곳에서 머리를 감싸고 자세를 낮췄다','탁자가 없으면 창문·유리에서 떨어져 머리를 감싸고 낮게 웅크린다.']},
+ {t:'서서 버틴다',r:'바닥이 기울 듯 흔들린다. 넘어지며 의자 모서리에 정강이를 찧는다.',fx:{hp:-15}}],
+ next:'c1_hayun'},
+
+c1_hayun:{ch:1,t:'13:52:20',place:'본관 4층 · 1학년 3반',icon:'😨',bg:'class',shake:true,lines:[
+ '옆자리. 하윤이 책상 밑에 들어가지 못하고 서 있다.','얼굴이 하얗다. 입술만 움직인다.'],
+ timer:3,def:2,choices:[
+ {t:'"하윤아, 들어가! 다리 잡아!" 소리친다',r:'하윤이 정신을 차리고 책상 밑으로 몸을 던진다.',fx:{trust:10},
+  ok:['얼어붙은 친구에게 할 일을 짧게 외쳤다','공포에 굳은 사람에게는 "들어가, 잡아"처럼 짧고 구체적인 말이 통한다.']},
+ {t:'내 자리에서 나가 하윤을 끌어당긴다',r:'하윤은 들어갔다. 대신 나는 흔들리는 바닥에 무릎을 찧는다.',fx:{trust:10,hp:-10}},
+ {t:'눈을 감는다',r:['하윤의 비명.','뭔가 떨어지는 소리.'],fx:{trust:-10},set:{hayunHurt:1}}],
+ next:'c1_stop'},
+
+c1_stop:{ch:1,t:'13:52:40',place:'본관 4층 · 1학년 3반',icon:'🌫️',bg:'class',lines:[
+ '뒤쪽에서 도준이 일어나 태블릿을 든다. "와, 이거 찍어야—"','"도준! 엎드려!" 박 선생님이 교탁 밑에서 소리친다.','……','흔들림이 멎는다.','정적. 형광등이 아직 천천히 흔들리고 있다.','깨진 화분 흙냄새. 누군가 훌쩍인다.','창밖에서 자동차 경보음이 여러 개 겹쳐 운다.'],
+ timer:5,def:0,choices:[
+ {t:'머리를 감싼 채 책상 밑에서 선생님 지시를 기다린다',r:'"다들 아직 나오지 마. 여진 올 수 있어."',fx:{calm:5},
+  ok:['흔들림이 멈춘 뒤에도 바로 뛰쳐나가지 않았다','큰 흔들림 뒤엔 여진이 온다. 지시를 기다렸다가 질서 있게 움직인다.']},
+ {t:'지금이다, 복도로 뛰어나간다',r:['복도에 이미 다른 반 아이들이 엉켜 있다. 누군가에게 밀려 넘어진다.','박 선생님이 나를 다시 교실로 데려온다.'],fx:{hp:-10,trust:-10},
+  no:['흔들림이 멈추자마자 복도로 뛰었다','한꺼번에 몰리면 복도·계단에서 넘어지는 사고가 난다.']},
+ {t:'보관함으로 달려가 휴대폰을 꺼낸다',r:['엄마에게 전화. 신호만 간다.','그 순간 작은 여진. 다시 바닥에 주저앉는다.'],fx:{bat:-3,calm:-10},set:{phone:1},
+  no:['흔들림이 멈추자마자 전화부터 걸었다','첫 몇 분은 몸을 지키고 지시를 듣는 시간이다. 연락은 안전한 곳에 나간 뒤에.']}],
+ next:'c1_door'},
+
+c1_door:{ch:1,t:'13:53:10',place:'1학년 3반 뒷문',icon:'🚪',bg:'class',lines:[
+ '"뒷문 쪽, 누구 문 열어! 문부터 열어 놔야 해!"','내 자리가 뒷문 바로 앞이다.','원래도 잘 안 열리던 그 문. 손잡이를 당긴다. 꿈쩍도 하지 않는다.','문틀이 비틀렸다.'],
+ choices:[
+ {t:'"도준아, 같이 당겨!"',r:'둘이 힘을 주자 끼익— 문이 반쯤 열린다. 출구가 생겼다.',fx:{trust:5},set:{exit:1},
+  ok:['흔들림이 멈추자 문을 열어 출구를 확보했다','건물이 비틀리면 문이 안 열려 갇힐 수 있다. 흔들림이 멈추면 먼저 문을 열어 둔다.']},
+ {t:'혼자 발로 찬다',r:'문이 조금 열렸다. 발목이 시큰하다.',fx:{hp:-5},set:{exit:1},
+  ok:['흔들림이 멈추자 문을 열어 출구를 확보했다','건물이 비틀리면 문이 안 열려 갇힐 수 있다. 흔들림이 멈추면 먼저 문을 열어 둔다.']},
+ {t:'"안 열려요!" 하고 포기한다',r:'박 선생님이 앞문 하나로 서른 명을 내보내야 한다.',set:{late:1},
+  no:['출구 확보를 포기했다','문 하나가 막히면 대피가 그만큼 늦어진다.']}],
+ next:'c1_bag'},
+
+c1_bag:{ch:1,t:'13:53:40',place:'본관 4층 · 1학년 3반',icon:'🎒',bg:'class',lines:[
+ '박 선생님이 보관함 뚜껑을 연다.','"각자 자기 거 챙겨. 가방도 메. 부모님께는 운동장 나가서 연락해. 지금은 아니야."',
+ ()=>S.f.phone?'내 휴대폰은 이미 손에 있다.':null],
+ choices:[
+ {t:'가방을 메고 내 폰만 챙긴다',r:'배터리 {bat}%. 아껴 써야 한다.',set:{bag:1},
+  ok:['가방(겉옷·물)을 메고 나왔다','대피할 때 가방은 머리를 가리는 방패가 되고, 겉옷과 물은 오래 버티게 해 준다.']},
+ {t:'가방을 메고, 하윤 폰도 같이 챙겨 준다',r:['"고마워…" 하윤의 손이 떨린다.','하윤 폰은 9%. 내 건 {bat}%.'],fx:{trust:5},set:{bag:1},
+  ok:['가방(겉옷·물)을 메고 나왔다','대피할 때 가방은 머리를 가리는 방패가 되고, 겉옷과 물은 오래 버티게 해 준다.']},
+ {t:'폰을 챙기자마자 단톡방부터 연다',r:['「배곧 지금 뭐임??」','「시화방조제 무너졌다는데」','메시지가 쏟아진다. 정신을 차려 보니 가방을 못 챙겼다.'],fx:{bat:-2,calm:-10},set:{rumor:1},
+  no:['대피 중에 단톡방 소문부터 봤다','확인되지 않은 소문은 판단을 흐린다. 재난문자·방송·선생님 지시가 먼저다.']}],
+ next:'c1_end'},
+
+c1_end:{ch:1,t:'13:54:00',place:'본관 4층 복도',icon:'📢',bg:'hall',lines:[
+ '띵동— 교내 방송.','"전 학생은 지금 즉시 담임 선생님 지시에 따라 운동장으로 대피—"','지직. 방송이 끊긴다.','그리고 계단 쪽에서, 누군가의 비명.'],next:'c2_stairs'},
+
+/* ---------- 2장 ---------- */
+c2_stairs:{ch:2,t:'13:54:10',place:'3~4층 계단',icon:'🪜',bg:'stairs',lines:[
+ ()=>S.f.late?'앞문 하나로 나오느라 우리 반이 맨 뒤다. 계단은 이미 꽉 찼다.':null,
+ '비명의 주인은 반장 서유다.','3층과 4층 사이 층계참. 위층 2학년들이 한꺼번에 쏟아져 내려오다 서유가 발을 헛디뎠다.',
+ '서유가 발목을 붙잡고 주저앉아 있다. 그 위로 사람들이 계속 밀려온다.','벽 타일 몇 장이 떨어져 계단에 흩어져 있다.','"밀지 마! 밀지 마!"',
+ ()=>S.f.hayunHurt?'뒤에서 하윤이 이마를 누르고 있다. 손가락 사이로 피가 조금 비친다. "나 괜찮아… 그냥 가."':null],
+ choices:[
+ {t:'"멈춰요! 사람 넘어졌어요!" 크게 외친다',r:'몇 명이 멈춘다. 흐름이 잠깐 끊긴 틈에 서유가 일어날 공간이 생긴다.',fx:{trust:10,calm:5},
+  ok:['계단에서 넘어진 사람을 큰 소리로 알렸다','계단 사고는 뒤에서 미는 데서 커진다. 멈추라고 외치면 연쇄로 넘어지는 걸 막을 수 있다.']},
+ {t:'서유의 어깨를 받쳐 일으킨다',r:()=>['서유의 팔이 내 어깨에 걸린다. 계단 한 칸 한 칸이 길다.',S.f.hayunHurt?'하윤은 도준이 대신 부축한다.':null].filter(Boolean),fx:{trust:15},set:{carry:1},
+  ok:['다친 친구를 부축했다','혼자 움직이기 힘든 사람과 함께 대피하는 것도 대피다. 다만 나도 넘어지지 않게 난간 쪽으로.']},
+ {t:'난간을 잡고 빠르게 내려간다',r:'뒤에서 서유의 목소리가 들린다. 돌아보지 않는다.',fx:{trust:-15}},
+ {t:'사람들 사이를 밀고 내려간다',r:'앞사람 등을 밀었다. 그 아이가 휘청인다. 누군가 나를 째려본다.',fx:{trust:-10,hp:-5},
+  no:['계단에서 사람을 밀었다','대피할 때 가장 위험한 행동이다. 서두르되 밀지 않는다.']}],
+ next:'c2_elev'},
+
+c2_elev:{ch:2,t:'13:55:00',place:'2층 복도 · 엘리베이터 앞',icon:'🛗',bg:'hall',lines:[
+ '2층 복도 끝. 장애 학생용 엘리베이터 앞에 몇 명이 서 있다.',
+ ()=>S.f.carry?'도준이 버튼을 누르며 손짓한다. "야, 서유 이거 태우면 되잖아!"':'도준이 버튼을 누르며 손짓한다. "야, 이거 타자! 서유도 이거 타면 되잖아!"',
+ '문이 열린다. 안에 불이 켜져 있다.'],
+ timer:4,def:2,choices:[
+ {t:'"안 돼, 지진 때 엘리베이터 타면 갇혀!" 막는다',r:['도준이 버튼에서 손을 뗀다.','3초 뒤, 작은 여진. 엘리베이터 안 불이 꺼진다.'],fx:{trust:5,calm:5},
+  ok:['엘리베이터를 막았다','지진 때 엘리베이터는 멈추거나 갇힐 수 있다. 반드시 계단으로.']},
+ {t:'서유를 엘리베이터에 태운다',r:['문이 닫힌다. 1층 표시등 직전에서 덜컹— 멈춘다.','안에서 비상벨 소리가 울린다.'],fx:{trust:-10},set:{seo:1,carry:0},
+  no:['친구를 엘리베이터에 태웠다','여진 한 번에 엘리베이터는 멈춘다. 다친 사람일수록 갇히면 더 위험하다.']},
+ {t:'아무 말 없이 계단으로 간다',r:'도준은 결국 타지 않았다. 대신 투덜댄다.'}],
+ next:'c2_gate'},
+
+c2_gate:{ch:2,t:'13:56:20',place:'1층 중앙현관',icon:'🚪',bg:'gate',lines:[
+ '1층. 중앙현관 유리문 한 짝에 금이 가 있다.','밖에는 외벽 마감재 조각과 깨진 화분이 흩어져 있다.','현관 지붕 끝에서 무언가 덜렁거린다.',
+ '박 선생님이 소리친다. "건물 옆에 붙지 마! 머리 가리고 운동장 가운데까지 뛰어!"'],
+ choices:[
+ {t:()=>S.f.bag?'가방을 머리에 얹고 운동장 가운데로 뛴다':'두 팔로 머리를 감싸고 운동장 가운데로 뛴다',r:()=>S.f.bag?'등 뒤에서 뭔가 떨어지는 소리. 돌아보지 않는다.':['등 뒤에서 뭔가 떨어지는 소리.','작은 조각이 팔뚝을 때린다. 가방이 있었다면.'],fx:()=>S.f.bag?{calm:5}:{calm:5,hp:-5},
+  ok:['머리를 가리고 건물에서 멀리 떨어졌다','지진 직후 건물 주변엔 유리·외벽·간판이 떨어진다. 가방으로 머리를 보호하고 넓은 곳으로.']},
+ {t:'건물 벽을 따라 그늘로 걸어간다',r:'머리 위 창틀에서 유리 조각이 떨어진다. 팔을 스친다.',fx:{hp:-15},
+  no:['건물 벽에 붙어 걸었다','건물 바로 옆은 낙하물이 가장 많이 떨어지는 곳이다.']},
+ {t:'현관 앞에서 신발 끈을 다시 묶는다',r:'사람들 흐름이 막힌다. "비켜!" 누군가에게 부딪친다.',fx:{hp:-5,trust:-5}}],
+ next:'c2_roll'},
+
+c2_roll:{ch:2,t:'13:58:00',place:'운동장',icon:'🏟️',bg:'yard',lines:[
+ '운동장. 반별로 줄을 선다. 전교생이 모여 있는데 이상하게 조용하다.','박 선생님이 출석부 없이 한 명씩 이름을 또박또박 부른다.',
+ '"…민재. 이민재!"','대답이 없다.','누군가 작게 말한다. "민재 5교시 시작할 때 화장실 갔는데…"','박 선생님이 곧바로 무전기를 든다. "1학년 3반 이민재 미확인. 마지막 위치 확인 중입니다." 그리고 우리를 본다. "민재 마지막으로 본 사람?"'],
+ choices:[
+ {t:'"4층 동쪽 끝 화장실이요! 거기 갔어요!"',r:'박 선생님이 무전으로 위치를 전한다. "4층 동쪽 끝 화장실입니다." 본관 점검 중이던 선생님들이 바로 그쪽으로 올라간다.',fx:{trust:10},set:{fast:1},
+  ok:['사라진 친구의 위치를 정확히 알렸다','직접 찾으러 들어가는 대신, 찾을 어른에게 정확한 위치를 알리는 게 가장 빠르다.']},
+ {t:'"제가 찾으러 갈게요!"',r:'"아니. 찾는 건 선생님들이 해. 너는 여기서 줄 지켜. 대신 마지막으로 본 데 생각나면 바로 말해 줘."',fx:{trust:-5,calm:-5},
+  no:['친구를 찾으러 건물로 들어가려 했다','여진이 올 수 있는 건물에 학생이 다시 들어가면 구해야 할 사람이 늘어난다.']},
+ {t:'민재에게 전화한다',r:'신호가 가지 않는다. 통화량 폭주.',fx:{bat:-2}},
+ {t:'민재에게 문자: 「어디야? 다들 운동장」',reply:true,r:['1분 뒤 답장.','「화장실 문 안열림 4층」','선생님께 화면을 보여 준다.'],fx:{bat:-1,trust:10},set:{fast:1},
+  ok:['전화 대신 문자로 확인했다','재난 직후엔 통화가 몰려 끊긴다. 짧은 문자가 더 잘 닿는다.']}],
+ next:'c2_roll2'},
+
+c2_roll2:{ch:2,t:'13:59:30',place:'운동장',icon:'🏟️',bg:'yard',lines:[
+ ()=>S.f.fast?'3분 뒤, 선생님들과 함께 민재가 절뚝이며 나온다. 반 아이들이 한꺼번에 숨을 내쉰다.':'5분 뒤, 4층을 차례로 확인하던 선생님들이 민재를 데리고 나온다. 화장실 문이 비틀려 안 열렸다고 한다.'],
+ next:'c2_liq'},
+
+c2_liq:{ch:2,t:'14:00:30',place:'운동장 · 축구 골대 근처',icon:'🫧',bg:'yard',lines:[
+ '축구 골대 근처에서 누군가 소리를 지른다.','땅에 금이 가 있다. 그 틈에서 회색 물이 부글부글 솟는다.','모래 섞인 물이 작은 분수처럼 올라와 웅덩이를 만든다.','골대 한쪽 기둥이 천천히 기운다.','과학 시간에 들은 말이 떠오른다. 배곧은 바다를 메운 땅.'],
+ choices:[
+ {t:'"선생님, 저기 땅에서 물 나와요!" 알리고 멀어진다',r:'선생님들이 학생들을 운동장 반대편으로 옮긴다.',fx:{calm:5,trust:5},
+  ok:['액상화가 일어난 곳에서 멀어졌다','물 머금은 모래땅(매립지)이 흔들리면 물과 모래가 솟고 땅이 물러진다. 이를 액상화라고 한다. 그 위는 피한다.']},
+ {t:'가까이 가서 들여다본다',r:['발밑 흙이 물컹하다. 운동화가 발목까지 빠진다.','간신히 빼냈다. 한쪽 신발이 젖었다.'],fx:{hp:-5},set:{wet:1},
+  no:['액상화된 땅에 다가갔다','물러진 땅은 발이 빠지고 꺼질 수 있다.']},
+ {t:'도준과 영상을 찍어 단톡방에 올린다',r:['「배곧 운동장 땅에서 물 나옴 ㄷㄷ」','반응이 폭발한다. 「무너지는 거 아님?」「다 대피해」'],fx:{bat:-4,trust:-5},set:{spread:1},
+  no:['영상을 찍어 퍼뜨렸다','설명 없는 자극적인 영상은 공포와 소문을 키운다. 배터리도 아껴야 한다.']}],
+ next:'c2_after'},
+
+c2_after:{ch:2,t:'14:02:00',place:'운동장',icon:'💥',bg:'yard',shake:true,lines:[
+ '바닥이 다시 흔들린다. 아까보다 약하다. 그래도 무릎이 꺾인다.','담장 옆 가로등이 크게 휘청인다.'],
+ timer:3,def:2,choices:[
+ {t:'그 자리에 낮게 앉아 머리를 감싼다',r:'흔들림이 지나간다.',fx:{calm:5},
+  ok:['여진 때 낮은 자세로 머리를 보호했다','건물 밖에서는 담장·가로등·전봇대에서 떨어져 넓은 곳에서 자세를 낮춘다.']},
+ {t:'담장 쪽으로 뛰어간다',r:'담장 위 벽돌 몇 장이 떨어진다. 한 장이 바로 앞에 떨어진다.',fx:{calm:-15},
+  no:['여진 때 담장 쪽으로 갔다','담장과 가로등은 흔들릴 때 무너지거나 쓰러질 수 있다.']},
+ {t:'서서 버틴다',r:'휘청이다 넘어져 손바닥이 까진다.',fx:{hp:-5}}],
+ next:'c2_contact'},
+
+c2_contact:{ch:2,t:'14:03:00',place:'운동장',icon:'📱',bg:'yard',notifFirst:true,
+ notif:{kind:'alert',body:'[기상청] 14:02 여진 발생. 건물 밖 넓은 곳에 머무르고 추가 여진에 주의하세요.'},
+ lines:['손가락이 떨려 비밀번호를 두 번 틀린다.','엄마에게 전화. 「연결할 수 없습니다」','그리고 메시지 하나가 먼저 와 있다.'],
+ msg:{from:'지우 (동생, 초4)',body:['{sib} 무서워','우리 학교 운동장인데 애들 울어','데리러 와']},
+ choices:[
+ {t:'「선생님 옆에 꼭 붙어 있어. 학교 밖으로 나가지 마. 엄마한테 연락할게」',reply:true,r:'「응…」 짧은 답장.',fx:{calm:5},set:{jiwoo:1},
+  ok:['동생에게 학교에 머물라고 했다','학교에 있는 아이는 학교가 보호하고 보호자에게 직접 넘긴다. 데리러 가겠다고 길에 나서면 둘 다 위험해진다.']},
+ {t:'「지금 갈게」',reply:true,r:'줄을 빠져나갈 틈을 본다. 박 선생님과 눈이 마주친다.',fx:{calm:-5},set:{tempt:1},
+  no:['동생을 데리러 가겠다고 했다','학교에 있는 아이는 학교가 보호한다. 내가 길에 나서는 순간, 구해야 할 사람이 하나 늘어난다.']},
+ {t:'엄마에게 계속 전화한다',r:'다섯 번 시도. 모두 실패.',fx:{bat:-5,calm:-10},
+  no:['전화를 계속 걸었다','통화 폭주 때 반복 통화는 배터리만 닳게 한다.']},
+ {t:'엄마에게 문자: 「나 학교 운동장 괜찮아. 지우도 학교에 있대」',reply:true,r:'4분 뒤, 숫자 1이 사라진다. 전화보다 문자가 먼저 닿았다.',fx:{bat:-1},set:{mom:1},
+  ok:['짧은 문자로 가족에게 위치를 알렸다','안부는 짧은 문자로. "어디 / 누구와 / 괜찮음" 세 가지면 충분하다.']}],
+ next:'c2_move'},
+
+c2_move:{ch:2,t:'14:03:40',place:'운동장 남쪽',icon:'📣',bg:'yard',lines:[
+ '교감 선생님이 확성기를 든다. "운동장 남쪽, 금 안 간 쪽으로 반별로 옮긴다! 건물과 담장에서 떨어져 앉는다!"',
+ '선생님들이 땅을 하나하나 밟아 보며 자리를 정한다.',
+ ()=>S.f.seo?'서유는 아직 엘리베이터 안이다. 층 사이에 걸려 있어 119와 승강기 업체를 불렀다. 행정실 선생님이 문 앞에서 계속 말을 걸고 있다.':null,
+ '그때 옆 반 몇 명이 웅성거린다. "민방위 훈련 때 백두비발디 지하주차장 갔잖아. 거기가 제일 안전하대."',
+ '도준이 내 어깨를 친다. "야, 우리도 거기 가자. 여기 땅 갈라지잖아."'],
+ choices:[
+ {t:'"지진 땐 건물 밖 넓은 데야. 선생님 말 듣자." 도준을 붙잡는다',r:'도준이 입을 삐죽이다 다시 앉는다.',fx:{trust:5},
+  ok:['지하주차장으로 가자는 말을 따르지 않았다','지진이 멈춘 뒤에는 건물 밖 넓은 곳(지진 옥외대피장소)이 원칙이다. 지하주차장은 공습에 대비한 민방위 대피소로, 여진과 침수에 약하다. 평소 훈련한 대피소가 모든 재난의 정답은 아니다.']},
+ {t:'박 선생님께 "옆 반 애들이 지하주차장 가재요" 하고 알린다',r:['박 선생님이 곧장 그쪽으로 간다. "지진 땐 지하로 가는 거 아니야. 여기 넓은 데가 맞아. 자리 지켜."','웅성거림이 가라앉는다.'],fx:{trust:10},
+  ok:['잘못된 대피 이야기를 선생님께 바로 알렸다','지진 뒤에는 건물 밖 넓은 곳이 원칙이다. 지하주차장은 공습 대비 대피소로, 여진과 침수에 약하다. 틀린 정보가 퍼지면 바로 어른에게 알린다.']},
+ {t:'도준과 몰래 줄을 빠져나간다',r:['운동장 출입구까지 가기도 전에 체육 선생님이 앞을 막는다.','"지진 땐 지하가 아니야. 해일이라도 오면 지하가 제일 먼저 잠겨. 반으로 돌아가."'],fx:{trust:-10,calm:-5},
+  no:['줄을 빠져나가 지하주차장으로 가려 했다','지진 뒤에는 건물 밖 넓은 곳이 원칙이다. 지하주차장은 여진과 침수에 약하다. 평소 훈련한 대피소가 모든 재난의 정답은 아니다.']}],
+ next:'c2_walk'},
+
+c2_walk:{ch:2,t:'14:05:00',place:'운동장 남쪽',icon:'🐦',bg:'yard',lines:[
+ '학교 건물과 아파트 동 너머로 회색 하늘만 보인다. 바다는 보이지 않는다.','그런데 갈매기 떼가 날아온다. 바다 쪽이 아니라, 바다에서 이쪽으로.','수십 마리가 머리 위를 낮게 지나 옥구산 쪽으로 사라진다.',
+ '도준이 휴대폰을 내민다. "야, 이거 봐." 해안 산책로에 있는 누군가의 라이브 방송.','「여러분 물이 다 빠졌어요 ㄷㄷ 이런 거 처음 봄」','화면 속 갯벌이 끝도 없이 드러나 있다. 바다가 뒤로, 뒤로 물러나고 있다.'],
+ choices:[
+ {t:'"선생님! 바다 물이 다 빠졌대요!" 화면을 보여 준다',r:['박 선생님이 화면을 본다. 얼굴이 굳는다. 곧바로 무전기를 든다.','"교감 선생님, 해안에서 바닷물이 크게 빠지고 있답니다. 해일 가능성 있습니다."','"알았다. 전 선생님, 해일 대비 이동 준비. 본관 점검조는 바로 올라가."'],fx:{trust:5},set:{warned:1},
+  ok:['바닷물이 빠진다는 걸 어른에게 바로 알렸다','바닷물이 갑자기 크게 빠지는 것은 지진해일의 신호다. 보거나 들으면 바로 알리고 높은 곳으로.']},
+ {t:'"와…" 영상을 끝까지 본다',r:'라이브 속 사람들이 갯벌로 걸어 들어간다. 조개를 줍는다.',fx:{bat:-2}},
+ {t:'신경 끄고 자리에 앉아 있는다',r:'옆에서 하윤이 무릎을 끌어안는다.'}],
+ next:'c2_end'},
+
+c2_end:{ch:2,t:'14:07:30',place:'운동장 남쪽',icon:'📻',bg:'yard',lines:[
+ '선생님들이 반 사이를 돌며 인원을 다시 센다. 체육 선생님 두 분이 본관으로 뛰어 들어간다.',
+ '무전기 너머로 교감 선생님 목소리. "본관 기둥, 계단 이상 없음 확인. 전 학년 이동 준비."',
+ '박 선생님이 우리 반 앞에 선다. "곧 움직일 수도 있어. 신발 끈 다시 묶고, 가방 메."',
+ '그 순간, 운동장의 휴대폰 수백 개가 다시 한꺼번에 운다.'],next:'c3_alert'},
+
+/* ---------- 3장 ---------- */
+c3_alert:{ch:3,t:'14:08:10',place:'운동장 남쪽',icon:'🚨',bg:'yard',cd:true,notifFirst:true,
+ notif:{kind:'tsunami',body:'[기상청] 14:08 지진해일 경보. 경기 서해안 예상 도달 14:27경. 해안가에서 즉시 벗어나 높은 곳으로 대피하십시오. 해안 접근 절대 금지.'},
+ lines:['운동장이 술렁인다. 누군가 울음을 터뜨린다.','교감 선생님 확성기가 먼저 울린다. 흔들림이 없다. 미리 준비한 목소리다.',
+ '"지진해일 경보다! 본관은 방금 선생님들이 점검했다. 기둥, 벽, 계단 이상 없다!"','"다친 학생과 그 반은 본관 4층과 옥상으로! 나머지는 체육 선생님을 따라 옥구산으로! 반별로, 뛰지 말고 빠르게!"'],
+ timer:5,def:0,choices:[
+ {t:'반 줄을 지키고 박 선생님 지시를 기다린다',r:'박 선생님이 내 눈을 보고 고개를 끄덕인다. "잘했어. 곧 나눈다."',fx:{calm:5,trust:5},
+  ok:['경보 속에서도 반 줄을 지켰다','대피 지시가 나오면 인원 파악이 된 무리가 가장 빨리, 가장 안전하게 움직인다.']},
+ {t:'단톡방을 연다',r:()=>['「해일 10m래」「송도 다 잠김」「배곧 끝났다」','출처 없는 말들이 쏟아진다.',S.f.spread?'「아까 운동장 영상 올린 거 너지? 그거 보고 우리 엄마 난리남」':null].filter(Boolean),fx:()=>S.f.spread?{bat:-2,calm:-20}:{bat:-2,calm:-15},
+  no:['경보 직후 단톡방부터 열었다','경보 직후 몇 분은 공식 지시를 듣고 움직이는 시간이다.']},
+ {t:'정문 쪽으로 뛰어간다',r:'체육 선생님이 앞을 막는다. "지금 길로 나가면 위험해! 반으로 돌아가!"',fx:{trust:-10},
+  no:['경보가 울리자 혼자 정문으로 뛰었다','경보가 울리면 혼자 움직이지 않는다. 선생님 지시에 따라 무리와 함께 높은 곳으로.']}],
+ next:'c3_up'},
+
+c3_up:{ch:3,t:'14:09:00',place:'운동장 남쪽',icon:'📣',bg:'yard',lines:[
+ '박 선생님이 반을 둘로 나눈다.','"다친 친구와 도와줄 사람은 나랑 본관 4층으로. 걸을 수 있는 사람은 체육 선생님 따라 옥구산으로. 둘 다 안전한 곳이야. 빨리 정해."',
+ '"아까 흔들렸는데 건물 올라가도 돼요?" 누군가 묻는다.','"방금 선생님들이 기둥이랑 계단 다 확인했어. 지금은 바다에서 멀리, 높이. 그게 전부야."'],
+ choices:[
+ {t:'본관 4층으로 간다',r:'박 선생님 뒤를 따라 본관 현관으로 들어간다. 층마다 선생님이 서서 길을 안내한다.',fx:{calm:5},
+  ok:['가까운 튼튼한 건물 위층으로 수직 대피했다','언덕이 멀거나 몸이 불편하면 점검된 철근콘크리트 건물의 높은 층(3층 이상)으로 올라간다.']},
+ {t:'옥구산으로 가는 줄에 선다',r:()=>S.f.carry?['서유를 박 선생님과 다른 반 친구 둘에게 맡긴다. "4층에서 봐."','옥구산 줄에 선다.']:'옥구산 줄에 선다. 앞사람 가방끈을 잡는다.',fx:{calm:5},set:{okgu:1,carry:0},
+  ok:['고지대(옥구산)로 대피했다','시간이 있고 걸을 수 있으면 바다에서 먼 높은 언덕으로 간다. 줄과 함께, 서두르되 뛰지 않는다.']},
+ {t:'"그냥 운동장에 있으면 안 돼요?"',r:'"해일은 넓고 낮은 데로 먼저 와. 같이 올라가자." 박 선생님이 내 등을 가볍게 민다. 본관으로 간다.',fx:{calm:-5},delay:10,
+  no:['낮은 운동장에 남으려 했다','지진 대피는 넓은 곳, 해일 대피는 높은 곳. 재난마다 방향이 다르다.']},
+ {t:'"우리 집 아파트가 더 높아요. 집에 갈래요."',r:'선생님들이 반을 나누는 사이, 한 발 물러선다.',set:{leave:1},no:NO_LEAVE},
+ {t:'"동생 데리러 가야 돼요!"',cond:()=>S.f.tempt,r:'선생님들이 반을 나누는 사이, 한 발 물러선다.',set:{leave:1,sibgo:1},no:NO_LEAVE}],
+ next:'c3_dojun'},
+
+c3_dojun:{ch:3,t:'14:09:40',place:'운동장 남쪽',icon:'📸',bg:'yard',lines:[
+ '줄이 움직이는 사이, 도준이 내 소매를 잡아당긴다.','눈이 반짝인다. 무서운 건지 신난 건지 모르겠다.',
+ '"야. 아파트 사이로 뛰면 해안 산책로까지 5분이면 가. 15분 넘게 남았잖아."','"여기선 바다가 안 보이잖아. 진짜 오는지 봐야 될 거 아냐."',
+ '"해일 실제로 보는 거 평생 한 번이야. 찍어서 올리면 대박이야. 같이 가자."','도준 뒤에 같은 반 남자애 둘이 더 서 있다.'],
+ timer:5,def:2,choices:[
+ {t:'"미쳤냐. 물 보이면 이미 늦어." 소매를 붙잡고 선생님께 간다',r:()=>['도준이 팔을 뿌리치려다 멈춘다. 박 선생님이 둘을 줄 맨 앞에 세운다.',S.f.leave?'나도 결국 줄로 돌아왔다.':null].filter(Boolean),fx:{trust:10},set:{dsafe:1,leave:0,sibgo:0},
+  ok:['해안으로 가려는 친구를 막았다','해일은 눈에 보일 때 이미 늦다. 구경하러 가는 사람을 막고 어른에게 알린다.']},
+ {t:'거절하고 바로 박 선생님에게 알린다',r:()=>['"선생님, 도준이 해안 간대요!"','박 선생님이 도준을 붙잡는다. 뒤의 둘은 이미 정문 밖이다. 박 선생님이 곧바로 무전으로 두 사람 이름과 방향을 알린다.',S.f.leave?'박 선생님이 나도 같이 줄에 세운다.':null].filter(Boolean),fx:{trust:5},set:{two:1,leave:0,sibgo:0},
+  ok:['해안으로 가려는 친구를 어른에게 알렸다','내 힘으로 막기 어려우면 바로 어른에게 알린다.']},
+ {t:'못 들은 척한다',r:['잠시 뒤 돌아보니 도준이 없다.','인원을 세던 박 선생님 얼굴이 굳는다. 곧바로 무전기를 든다. "1학년 3반 최도준, 이탈. 해안 방향 추정."'],set:{dmiss:1}},
+ {t:'따라간다',r:'정문을 빠져나간다. 등 뒤에서 박 선생님이 내 이름을 부른다.',set:{beach:1},
+  no:['해일을 구경하러 해안으로 갔다','해일 경보 때 해안 접근은 절대 금지다. 사진 한 장과 목숨을 바꾸는 일이다.']}],
+ next:()=>S.f.beach?'c3_C1':S.f.leave?'c3_B1':S.f.okgu?'c3_D1':S.f.carry?'c3_A_carry':S.f.seo?'c3_A_elev':'c3_A_hall'},
+
+/* 분기 A: 본관 4층 수직 대피 */
+c3_A_carry:{ch:3,t:'14:10:30',place:'본관 계단 1→4층',icon:'🪜',bg:'stairs',lines:[
+ '아까 내려온 본관 계단을 다시 오른다. 층마다 선생님이 서서 "천천히, 난간 잡고!" 하고 안내한다.','깨진 타일은 이미 한쪽으로 치워져 있다.','서유의 팔이 내 어깨를 누른다. 4층은 멀다.'],
+ mini:{type:'rhythm',
+  ok:{r:['"…고마워. 진짜로."','다른 반 아이 둘이 서유의 반대쪽 어깨를 받쳐 준다. 4층이다.'],fx:{trust:10},ok:['다친 친구와 함께 수직 대피했다','혼자 빨리 가는 것보다 함께 가는 게 모두를 살린다. 도와 달라고 하면 손이 늘어난다.']},
+  fail:{r:['서유와 함께 휘청인다. 계단의 선생님이 바로 반대쪽을 받쳐 준다.','4층까지 왔다.'],fx:{hp:-5}}},
+ next:'c3_A_hall'},
+
+c3_A_elev:{ch:3,t:'14:11:00',place:'본관 2층 · 엘리베이터 앞',icon:'🛗',bg:'hall',lines:[
+ '2층을 지날 때, 멈춘 엘리베이터 앞에 행정실 선생님과 소방대원이 있다.','"서유야, 조금만 기다려. 지금 비상 열쇠로 연다!" 행정실 선생님 목소리가 침착하다.',
+ '문틈으로 서유 목소리. "…응."','엘리베이터에 태운 게 나라는 걸, 서유는 아직 모른다.'],
+ timer:6,def:2,choices:[
+ {t:'"서유 발목 다쳤어요! 휴대폰도 없어요!" 상황을 알린다',r:['행정실 선생님이 고개를 끄덕인다. "알려 줘서 고마워. 업고 올라갈게. 넌 4층으로 가."','14:13, 문이 열린다. 소방대원이 서유를 업고 계단을 오른다.'],fx:{trust:15},
+  ok:['갇힌 친구의 상황을 구조하는 어른에게 정확히 알렸다','구조하는 사람에게 다친 곳, 연락 수단 같은 정보를 짧게 전하고, 나는 내 대피를 계속한다.']},
+ {t:'"제가 문 같이 벌릴게요!"',r:['"손 넣으면 안 돼. 열쇠로 열어. 넌 4층으로 올라가."','행정실 선생님이 단호하게 계단을 가리킨다. 14:13, 서유가 구조된다.'],fx:{calm:-5},
+  no:['구조 현장에 끼어들려 했다','엘리베이터 문을 손으로 벌리면 크게 다친다. 구조는 열쇠와 장비를 가진 사람에게 맡기고 대피를 계속한다.']},
+ {t:'아무 말 없이 4층으로 올라간다',r:'계단을 오르는 내내 뒤를 돌아본다. 14:13, 서유를 업은 소방대원이 올라온다.',set:{guilt:1}}],
+ next:'c3_A_hall'},
+
+c3_A_hall:{ch:3,t:'14:14:00',place:'본관 4층 복도',icon:'🏢',bg:'hall',lines:[
+ ()=>S.f.returned?'정문 앞에서 박 선생님 손을 잡고 돌아왔다. 아무도 뭐라 하지 않는다. 그래서 더 미안하다.':null,
+ '4층. 학생들이 복도와 교실에 빽빽이 앉는다.','선생님들이 창가에서 아이들을 떼어 놓는다. "창문에서 떨어져! 복도 쪽으로 앉아!"','보건 선생님이 생수와 담요를 나눠 준다.',
+ '누군가 창문에 붙어 밖을 본다. 보이는 건 아파트 벽뿐이다.','"아무것도 안 보여. 진짜 오는 거 맞아?"'],
+ choices:[
+ {t:'복도 안쪽 벽에 기대 앉는다',r:'하윤이 옆에 와서 앉는다. 어깨가 닿는다. 둘 다 떨고 있다.',fx:{calm:5,trust:5},
+  ok:['창가에서 떨어져 앉았다','해일이 오면 유리창이 깨지고 떠밀려 온 것들이 부딪친다. 창에서 떨어진 안쪽이 안전하다.']},
+ {t:'창가로 가서 바다 쪽을 본다',r:'아파트 동과 동 사이 좁은 틈으로 회색 하늘만 보인다. 너무 조용하다. 그게 더 무섭다.',fx:{calm:-10}},
+ {t:'"옥상으로 더 올라가요!"',r:'"옥상은 다른 반이 있어. 4층이면 충분해. 계단이 붐비면 그게 더 위험해." 계단에서 되돌아온다.',delay:30}],
+ next:'c3_A_msg'},
+
+c3_A_msg:{ch:3,t:'14:18:00',place:()=>S.f.okgu?'옥구산 중턱':'본관 4층 복도',icon:'📱',bg:()=>S.f.okgu?'yard':'hall',lines:['휴대폰이 진동한다.'],
+ msg:()=>S.f.mom?{from:'엄마',body:['엄마 회사 3층 옥상이야 괜찮아','지우 학교도 3층으로 올라갔대 선생님한테 문자 왔어','너 절대 혼자 다니지마 선생님 옆에 있어','사랑해']}
+  :{from:'엄마',body:['(부재중 전화 7통)','어디야','어디야 답해','제발']},
+ choices:[
+ {t:()=>S.f.okgu?'「옥구산 올라왔어. 선생님이랑 같이 있어. 나도 사랑해」':'「학교 4층이야. 선생님이랑 같이 있어. 나도 사랑해」',reply:true,r:()=>S.f.mom?'바로 숫자 1이 사라진다.':['3분 뒤, 숫자 1이 사라진다.','「다행이다 다행이다 다행이다」'],fx:{bat:-1,calm:10},set:{mom:1},
+  ok:['엄마에게 위치를 짧게 알렸다','"어디 / 누구와 / 괜찮음". 가족이 엉뚱한 곳으로 찾으러 오지 않게 한다.']},
+ {t:'영상통화를 건다',r:'연결 중… 연결 중… 실패.',fx:{bat:-6},
+  no:['통화 폭주 중에 영상통화를 걸었다','데이터·배터리가 가장 많이 드는 연락 방법이다. 짧은 문자가 먼저다.']},
+ {t:'아직 답하지 않는다 (배터리 아끼기)',r:'화면을 끈다. 손이 계속 휴대폰을 찾는다.',fx:{calm:-5}}],
+ next:'c3_A_fake'},
+
+c3_A_fake:{ch:3,t:'14:21:00',place:()=>S.f.okgu?'옥구산 중턱':'본관 4층 복도',icon:'💬',bg:()=>S.f.okgu?'yard':'hall',lines:['반 단톡방. 읽지 않은 메시지 214개.','맨 위에 사진 한 장이 떠 있다.','「배곧대교 무너짐 실화냐」'],
+ choices:[
+ {t:'열어 보지 않는다',r:'화면을 끈다. 지금 내가 할 수 있는 건 여기 있는 것뿐이다.',fx:{calm:5},
+  ok:['출처 없는 사진을 열지도 퍼뜨리지도 않았다','재난 때 가짜 뉴스는 사람들을 엉뚱한 곳으로 움직이게 한다.']},
+ {t:'열어 본다',r:'흐릿한 다리 사진. 자세히 보니 몇 년 전 다른 나라 뉴스 사진이다.',fx:{bat:-1,calm:-5}},
+ {t:'가족 단톡방에 그대로 전달한다',r:'엄마 답장: 「이거 진짜야?? 너 다리 근처야??」 엄마가 더 불안해졌다.',fx:{bat:-1,trust:-5},
+  no:['가짜 사진을 가족에게 전달했다','확인되지 않은 정보를 전달하면 가족이 잘못 움직일 수 있다.']}],
+ next:()=>S.f.okgu?'c3_D_end':'c3_A_end'},
+
+c3_A_end:{ch:3,t:'14:24:00',place:'본관 4층 복도',icon:'🌊',bg:'hall',lines:[
+ '복도가 조용해진다. 우는 소리도 멈췄다.','박 선생님이 출석을 다시 부른다.',
+ ()=>S.f.dmiss?'"…최도준." 대답이 없다. 박 선생님이 무전기를 쥔 손에 힘을 준다. "경찰과 119에 이미 알렸어. 찾고 있어."':S.f.two?'"…김현우. 정태민." 대답이 없다. 박 선생님이 낮게 말한다. "119에 알렸어. 구조대가 찾고 있어."':'여기 온 아이들은 모두 대답한다.',
+ '누군가 작게 기도한다.','박 선생님 무전기가 지직거린다. 옥상에서 바다 쪽을 지켜보던 교감 선생님 목소리.','"…보인다. 하얀 줄이 들어온다. 전원 창문에서 떨어져 앉아!"',
+ '여기선 아무것도 보이지 않는다. 대신 소리가 먼저 온다.','멀리서, 아주 낮게. 무언가가 무너지며 밀려오는 소리.'],
+ end:()=>({loc:'본관 4층'})},
+
+/* 분기 D: 옥구산 고지대 대피 */
+c3_D1:{ch:3,t:'14:12:00',place:'옥구공원 가는 길',icon:'🚶',bg:'road',lines:[
+ '전교생 절반이 두 줄로 걷는다. 맨 앞에서 체육 선생님이 길을 연다. 맨 뒤에서 교감 선생님이 확성기를 든다.','"뛰지 마! 앞사람 가방 잡고! 빠르게!"',
+ '보도블록이 들떠 있고, 곳곳에 회색 물웅덩이가 있다.','바로 앞, 보도 한가운데가 꺼져 모래물이 고여 있다. 체육 선생님이 팔을 벌려 옆길을 가리킨다.'],
+ choices:[
+ {t:'줄을 따라 웅덩이를 돌아간다',r:'30초가 더 걸린다. 그래도 줄은 흐트러지지 않는다.',delay:30,
+  ok:['액상화로 꺼진 길을 돌아갔다','물러진 땅은 갑자기 꺼질 수 있다. 조금 돌아가더라도 단단한 길로.']},
+ {t:'그냥 밟고 건넌다',r:'발이 무릎까지 빠진다. 뒤에서 하윤이 끌어 준다. 체육 선생님이 "옆길로!" 하고 다시 외친다.',fx:{hp:-10},set:{wet:1},
+  no:['꺼진 땅을 그냥 밟고 건넜다','액상화된 땅은 발이 빠지고 꺼질 수 있다. 안내하는 길로 간다.']},
+ {t:'줄을 벗어나 화단 쪽 지름길로 뛴다',r:'화단 흙이 물컹 꺼진다. 넘어진다. 교감 선생님이 일으켜 줄 맨 뒤에 세운다.',fx:{hp:-5,trust:-5},delay:40,
+  no:['대피 줄을 벗어나 지름길로 갔다','대피 행렬을 벗어나면 인원 파악이 안 되고, 나만 위험해진다.']}],
+ next:'c3_D2'},
+
+c3_D2:{ch:3,t:'14:16:00',place:'옥구공원 · 등산로 입구',icon:'⛰️',bg:'yard',lines:[
+ '옥구공원 육상 트랙을 가로지른다. 트랙 위에도 금이 가 있다.','등산로 입구. 동네 사람들까지 한꺼번에 몰렸다. 체육 선생님이 학생 줄과 주민 줄을 나눠 세운다.',
+ ()=>S.f.hayunHurt?'하윤이 이마를 누른 채 숨을 몰아쉰다. "나… 못 가겠어."':'하윤이 숨을 몰아쉰다. "나… 못 가겠어."'],
+ mini:{type:'rhythm',
+  ok:{r:['하윤의 손을 잡고 한 칸씩. 숨이 턱에 찬다.','중턱 전망 데크다.'],fx:{trust:10},ok:['지친 친구와 함께 언덕을 올랐다','고지대 대피는 함께 가야 끝까지 간다. 서두르되 뛰지 않는다.']},
+  fail:{r:['발을 헛디뎌 정강이를 찧는다. 뒤에 있던 선생님이 팔을 잡아 준다.','중턱까지 왔다.'],fx:{hp:-5}}},
+ next:'c3_A_msg'},
+
+c3_D_end:{ch:3,t:'14:24:00',place:'옥구산 중턱 전망 데크',icon:'🌊',bg:'sea',lines:[
+ '체육 선생님이 출석을 부른다.',
+ ()=>S.f.dmiss?'"…최도준." 대답이 없다. 체육 선생님이 바로 무전을 친다. "119에 알렸습니다. 구조대가 찾고 있습니다."':S.f.two?'"…김현우. 정태민." 대답이 없다. 체육 선생님이 무전을 친다. "구조대가 찾고 있습니다."':'여기 온 아이들은 모두 대답한다.',
+ '나무 사이로, 처음으로 바다가 보인다.','지식산업센터 건물들 너머, 물이 빠져 끝없이 드러난 갯벌.','그리고 그 끝, 덕섬 너머 수평선이 하얗다.','하얀 줄 하나가 이쪽으로 길게 그어지고 있다.','데크 위 수백 명이 한꺼번에 숨을 멈춘다.'],
+ end:()=>({loc:'옥구산 중턱 전망 데크'})},
+
+/* 분기 B: 학교 이탈 */
+c3_B1:{ch:3,t:'14:10:30',place:'학교 정문 밖 도로',icon:'🚗',bg:'road',lines:[
+ '정문을 빠져나왔다. 등 뒤에서 박 선생님이 내 이름을 부르고, 무전으로 내 이름과 방향을 알리는 소리가 들린다.','단지 앞 도로는 주차장이다. 차들이 비상등을 켠 채 움직이지 않는다.',
+ '경적, 경적, 경적. 누군가 차에서 내려 차를 버리고 뛴다.','우리 아파트는 바다 쪽으로 몇 블록. 지우네 학교는 옥구공원 쪽. 어느 쪽이든 길 위에 있는 시간이 문제다.'],
+ choices:[
+ {t:'돌아간다. 지금이라도',r:'정문 앞에서 기다리던 박 선생님이 내 손을 잡는다. "괜찮아. 돌아온 게 잘한 거야. 같이 가자." 본관 계단을 함께 오른다.',fx:{trust:-10,calm:-5},set:{returned:1,leave:0},go:'c3_A_hall',
+  ok:['잘못을 깨닫고 바로 돌아갔다','늦었다고 생각해도 되돌아가는 게 맞다. 선생님은 돌아온 학생을 기다리고 있다.']},
+ {t:'아는 학부모 차에 태워 달라고 한다',r:['차에 탄다. 5분 동안 50m 움직였다. 앞이 막혔다.','창밖으로 뛰어가는 사람들. 결국 문을 열고 내린다.'],delay:300,go:'c3_B2',
+  no:['차를 타고 대피하려 했다','해일 경보 때 도로는 순식간에 막힌다. 차 안은 물에 가장 약한 곳이다.']},
+ {t:'아파트까지 뛴다',r:'숨이 턱까지 찬다. 바다 냄새가 진하다.',fx:{hp:-5},go:'c3_B2'},
+ {t:'지우네 학교로 뛴다',cond:()=>S.f.sibgo,r:['900m 전력 질주.','정문 앞 선생님이 나를 막는다. "지우는 3층에 안전하게 있어! 너도 여기 3층으로 올라와!"'],fx:{hp:-10,trust:-5},go:'end_sib'}]},
+
+c3_B2:{ch:3,t:'14:18:00',place:'배곧 아파트 단지',icon:'🏢',bg:'apt',lines:[
+ '아파트 단지 입구가 보인다. 공동현관 앞에 사람들이 몰려 있다.','「지진 후 점검 전까지 엘리베이터 운행 중지」','우리 집은 27층이다.'],
+ choices:[
+ {t:'계단으로 5층 이상만 올라가 복도에 머문다',r:'7층 계단참. 숨이 차 주저앉는다. 창밖으로 바다 쪽이 보인다.',fx:{hp:-10},go:'end_aptA',
+  ok:['집까지가 아니라 충분히 높은 층에서 멈췄다','수직 대피는 3층 이상이면 된다. 무리해서 꼭대기까지 갈 필요는 없다.']},
+ {t:'27층 집까지 올라간다',r:['15층에서 다리가 풀린다.','여진. 계단에 주저앉는다.'],fx:{hp:-25,calm:-10},go:'end_aptB'},
+ {t:'1층 상가 편의점에 들어가 숨는다',r:'편의점 안. 직원도 손님도 없다. 유리문 너머로 바다 쪽 하늘이 보인다.',go:'end_shop',
+  no:['1층에 숨었다','해일 때 1층은 가장 먼저 잠긴다. 지붕이 있다고 안전한 게 아니다.']}]},
+
+end_sib:{ch:3,t:'14:20:00',place:'지우네 초등학교 3층',icon:'🏫',bg:'hall',lines:[
+ '3층 복도. 지우가 나를 보고 울음을 터뜨린다.','"{sib}! 왜 왔어, 위험하다고 했잖아…"','지우네 선생님이 내 이름과 학교를 묻고, 박 선생님께 바로 전화를 건다. 그리고 우리 둘을 같이 벽 쪽에 앉힌다.','여기서도 바다는 보이지 않는다. 대신 멀리서, 낮게, 무언가 밀려오는 소리가 들린다.'],
+ end:{loc:'지우네 초등학교 3층',teaser:'4장. 물이 들어온다 — 동생과 함께, 낯선 학교 3층에서 첫 물결을 맞는다. 박 선생님은 지우네 선생님과 통화해 내 위치를 확인했다.'}},
+end_aptA:{ch:3,t:'14:24:00',place:'아파트 7층 계단참',icon:'🏢',bg:'apt',lines:['계단참 창문 너머, 갯벌 끝이 하얗게 일어선다.','계단에 앉은 사람들이 한꺼번에 숨을 멈춘다.'],
+ end:{loc:'배곧 아파트 7층 계단참',teaser:'4장. 물이 들어온다 — 아파트 1층 공동현관으로 물이 밀려든다. 아래층에 남은 이웃들.'}},
+end_aptB:{ch:3,t:'14:24:00',place:'아파트 15층 계단',icon:'🏢',bg:'apt',lines:['다리가 떨려 일어설 수 없다.','창밖이 하얘진다.'],
+ end:{loc:'배곧 아파트 15층 계단',teaser:'4장. 물이 들어온다 — 지친 몸으로 맞는 첫 물결. 체력이 바닥이다.'}},
+end_shop:{ch:3,t:'14:25:00',place:'아파트 1층 편의점',icon:'🏪',bg:'apt',lines:['편의점 냉장고 소리만 들린다.','유리문 밖, 길 끝에서 사람들이 이쪽으로 뛰어온다. 뭔가 소리치고 있다.','바닥 타일 틈으로 물이 스며든다.'],
+ end:{loc:'배곧 아파트 1층 편의점',danger:true,teaser:'4장. 물이 들어온다 — 1층 탈출 이벤트. 실패하면 게임 오버.'}},
+
+/* 분기 C: 해안 */
+c3_C1:{ch:3,t:'14:16:00',place:'배곧 해안 산책로',icon:'🌊',bg:'sea',lines:[
+ '해안 산책로. 이상하게 사람이 많다. 휴대폰을 든 사람들.','물이 빠진 갯벌 위에 배 몇 척이 기울어져 박혀 있다.','어떤 아저씨는 갯벌로 내려가 조개를 줍는다.',
+ '도준이 휴대폰을 가로로 든다. "봐, 아무것도 없잖아."','산책로 스피커에서 안내 방송이 반복된다. "해안가에 계신 분들은 즉시 대피하십시오—"'],
+ choices:[
+ {t:'"도준아, 가자. 지금." 끌고 돌아선다',r:'도준이 머뭇거리다 따라온다. 가장 가까운 높은 건물은 해안도로 건너편 지식산업센터.',fx:{trust:5},set:{dsafe:1},
+  ok:['해안에서 바로 돌아섰다','늦었다고 느낄 때가 가장 빠를 때다.']},
+ {t:'혼자 돌아선다',r:'도준은 남는다. 돌아보지 않고 뛴다.',set:{dmiss:1}},
+ {t:'5분만 더 찍는다',r:'화면 속 바다는 그냥 갯벌이다. 5분이 흐른다.',fx:{bat:-5},delay:300,
+  no:['해안에서 영상을 찍었다','예상 도달 시간은 추정일 뿐이다. 더 일찍, 더 크게 올 수 있다.']},
+ {t:'갯벌로 내려가 본다',r:['발이 빠진다. 무릎까지.','빼내는 데 3분이 걸린다.'],fx:{hp:-10},set:{wet:1},delay:180,
+  no:['물이 빠진 갯벌로 내려갔다','바닷물이 갑자기 빠지는 건 해일의 신호다. 그때는 바다에서 가장 멀어져야 한다.']}],
+ next:'c3_C2'},
+
+c3_C2:{ch:3,t:'14:20:00',place:'해안도로 건너편 지식산업센터',icon:'🏢',bg:'road',lines:[
+ '해안도로 건너편, 유리벽으로 된 지식산업센터 건물.','공동현관이 잠겨 있다. 유리문 안쪽에 경비 아저씨가 보인다.'],
+ choices:[
+ {t:'유리문을 두드리며 "해일 경보예요! 열어 주세요!"',r:'문이 열린다. 계단을 뛰어오른다.',go:()=>remain()<240?'end_offLate':'end_off',
+  ok:['잠긴 건물 문을 두드려 도움을 청했다','위급할 때는 가까운 건물에 큰 소리로 도움을 청한다. 위층으로 올라가는 게 먼저다.']},
+ {t:'다른 건물을 찾아 뛴다',r:'길 건너 상가 건물로 뛴다.',go:()=>remain()<300?'over_beach':'end_mall'}]},
+
+end_off:{ch:3,t:'14:21:00',place:'지식산업센터 5층 복도',icon:'🏢',bg:'apt',lines:['5층 복도 창문. 숨이 턱에 찬다.',()=>S.f.dsafe?'옆에서 도준이 휴대폰을 내린다. 손이 떨리고 있다.':null,'수평선이 하얗다.'],
+ end:{loc:'해안도로 건너편 지식산업센터 5층',teaser:'4장. 물이 들어온다 — 방금 서 있던 산책로가 눈앞에서 사라진다.'+' 그리고 아직 해안에 남은 사람들.'}},
+end_offLate:{ch:3,t:'14:24:00',place:'지식산업센터 3층 계단',icon:'🏢',bg:'apt',enter:()=>{fxLine(apply({hp:-20}))},lines:['3층에서 다리가 풀린다. 계단 모서리에 정강이를 찧는다.','창밖에서 굉음이 들린다.'],
+ end:{loc:'해안도로 건너편 지식산업센터 3층 계단',danger:true,teaser:'4장. 물이 들어온다 — 다친 다리로 더 올라가야 한다.'}},
+end_mall:{ch:3,t:'14:22:00',place:'상가 2층 복도',icon:'🏬',bg:'apt',lines:['상가 2층, 문 닫힌 학원 앞 복도. 주저앉는다.','2층. 충분히 높을까.'],
+ end:{loc:'해안 근처 상가 2층',danger:true,teaser:'4장. 물이 들어온다 — 2층까지 물이 차오를까. 위로 가는 계단을 찾아야 한다.'}},
+over_beach:{ch:3,t:'14:26:00',place:'해안 도로',icon:'🌊',bg:'sea',lines:['상가 문이 잠겨 있다. 다음 건물로.','등 뒤에서 소리가 바뀐다. 파도 소리가 아니다. 무언가 무너지며 밀려오는 소리.'],
+ over:{title:'위험한 구경꾼',text:['해일은 보일 때 이미 늦다.','바닷물이 빠지는 걸 봤을 때, 경보를 받았을 때 — 그때가 마지막 기회였다.','해일 경보가 울리면 해안에는 절대 가지 않는다. 사진 한 장은 목숨과 바꿀 만한 게 아니다.']}}
+};
+
+/* ===================== 시작 ===================== */
+let sib='누나';
+document.querySelectorAll('#sibSeg button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#sibSeg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');sib=b.dataset.v});
+$('#snd').onclick=()=>{sound=!sound;$('#snd').textContent=sound?'🔊':'🔇'};
+function start(){
+  S.name=($('#nm').value.trim()||'나');S.sib=sib;reset();
+  curCh=0;baseT=0;LOG().innerHTML='';$('#sheet').innerHTML='';
+  $('#start').hidden=true;$('#result').hidden=true;$('#play').hidden=false;
+  drawStats();drawStage();startClock();go('p0');
+}
+$('#go').onclick=()=>{ac();if(AC&&AC.state==='suspended')AC.resume();start()};
+</script>
+
+<!-- ===================== 연출 레이어 v0.2: 휴대폰 · 미니맵 · 화면 효과 · 효과음 ===================== -->
+<style>
+/* 휴대폰 */
+#phone{position:fixed;left:50%;top:52px;bottom:var(--sheetH,200px);width:min(300px,84vw);z-index:35;display:flex;align-items:flex-end;justify-content:center;
+  transform:translate(-50%,40px) scale(.95);opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.2,.9,.3,1.1),opacity .25s}
+#phone.on{transform:translate(-50%,0) scale(1);opacity:1;pointer-events:auto}
+.ph-frame{width:100%;height:min(100%,500px);min-height:260px;background:#0b0d11;border:2px solid #3a404c;border-radius:30px;box-shadow:0 24px 60px rgba(0,0,0,.85),0 0 0 6px #15181e;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.ph-frame::before{content:'';position:absolute;top:7px;left:50%;transform:translateX(-50%);width:70px;height:18px;border-radius:10px;background:#000;z-index:2}
+.ph-status{flex:none;display:flex;justify-content:space-between;align-items:center;padding:9px 20px 5px;font-size:11px;font-weight:800;color:#cfd5dc;font-variant-numeric:tabular-nums}
+.ph-status .r{display:flex;gap:5px;align-items:center}
+.ph-status .sig{letter-spacing:-1px;color:#cfd5dc}.ph-status .sig.weak{color:#ffb020}
+.batt{display:inline-block;width:20px;height:10px;border:1.5px solid #cfd5dc;border-radius:3px;position:relative;padding:1px}
+.batt u{display:block;height:100%;background:#cfd5dc;border-radius:1px}
+.batt.low{border-color:#ff4d4f}.batt.low u{background:#ff4d4f}
+.ph-body{flex:1;min-height:0;display:flex;flex-direction:column}
+.lock{flex:1;background:linear-gradient(#1b2433,#0b0f16);padding:14px 12px;text-align:center;display:flex;flex-direction:column}
+.lock.tsu{background:linear-gradient(#5a0c12,#14040a);animation:lockp 1s ease-in-out infinite}
+@keyframes lockp{50%{background:linear-gradient(#7a1018,#1c060c)}}
+.lk-time{font-size:54px;font-weight:200;line-height:1;margin-top:6px;font-variant-numeric:tabular-nums}
+.lk-date{font-size:12.5px;color:#aeb6c0;margin-top:4px}
+.acard{margin-top:16px;text-align:left;background:rgba(40,12,14,.94);border:1px solid #ff4d4f;border-radius:16px;padding:10px 12px;animation:drop .45s cubic-bezier(.2,.9,.3,1.3)}
+.acard h5{margin:0 0 4px;font-size:11.5px;color:#ff8a8c;display:flex;justify-content:space-between}
+.acard p{margin:0;font-size:13px;line-height:1.5}
+.lk-tsu{margin-top:auto;font-weight:900;color:#ffd0d0;font-size:15px;letter-spacing:.1em;animation:blink 1s steps(2) infinite}
+.lk-hint{margin-top:auto;font-size:11px;color:#6c7480}
+@keyframes drop{from{transform:translateY(-30px);opacity:0}to{transform:none;opacity:1}}
+.chat-h{flex:none;display:flex;align-items:center;gap:8px;padding:6px 12px 8px;border-bottom:1px solid #222831;font-weight:800;font-size:14px}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#3a4252;font-size:13px;flex:none}
+.chat-b{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px;background:#11151b;scroll-behavior:smooth}
+.bb{align-self:flex-start;max-width:82%;background:#2a2f38;padding:7px 10px;border-radius:4px 14px 14px 14px;font-size:13.5px;line-height:1.45;animation:fin .25s;word-break:keep-all}
+.bb.me{align-self:flex-end;background:#f2d64b;color:#1d1d1d;border-radius:14px 4px 14px 14px}
+.rd{align-self:flex-end;font-size:10px;color:#f2d64b;margin:-3px 2px 0 0}
+.bw{font-size:11px;color:#9aa3ad;margin:4px 0 -2px 2px}
+.sys{align-self:center;font-size:11.5px;color:#ff9c9c;background:#2a1215;padding:3px 10px;border-radius:999px;margin:3px 0}
+.pic{width:150px;height:92px;border-radius:10px;background:linear-gradient(135deg,#4a5260,#1e232b);display:grid;place-items:center;color:#c0c7cf;font-size:12px;filter:blur(.4px)}
+.typing{align-self:flex-start;background:#2a2f38;border-radius:4px 14px 14px 14px;padding:9px 12px;display:flex;gap:4px}
+.typing.me{align-self:flex-end;background:#f2d64b}
+.typing i{width:6px;height:6px;border-radius:50%;background:#9aa3ad;animation:tdot 1s infinite}
+.typing.me i{background:#6b5d17}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes tdot{0%,60%,100%{opacity:.3;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+.chat-in{flex:none;padding:8px 12px 12px;border-top:1px solid #222831;font-size:12px;color:#6c7480;display:flex;justify-content:space-between;align-items:center}
+.chat-in b{color:#f2d64b;font-weight:800}
+.call{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(#1a2230,#0b0f16)}
+.call .av{width:78px;height:78px;font-size:32px}
+.call .nm{font-size:21px;font-weight:800}
+.call .stt{color:#aeb6c0;font-size:13px;min-height:18px}
+.call .stt.fail{color:#ff6b6b;font-weight:800}
+.call .hang{width:56px;height:56px;border-radius:50%;background:#e03131;display:grid;place-items:center;font-size:22px;margin-top:26px}
+.call.video{background:linear-gradient(#15202b,#05080c)}
+#notif{display:none!important}
+#scene .pl,#scene .tm,#scene .ic{z-index:2}
+#scene .ic{font-size:44px!important;right:12px!important;bottom:4px!important}
+#toast{position:fixed;left:50%;top:12px;transform:translate(-50%,-150%);z-index:55;background:#1d1214;border:1px solid #ff4d4f;color:#ffd0d0;border-radius:999px;padding:7px 14px;font-weight:800;font-size:13px;transition:transform .3s;white-space:nowrap}
+#toast.on{transform:translate(-50%,0)}
+#toast:not(.on){visibility:hidden;transition:transform .3s,visibility 0s .3s}
+
+/* 미니맵 */
+#scene .mini{position:absolute;top:8px;right:8px;width:118px;height:81px;border-radius:9px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 14px rgba(0,0,0,.5);cursor:pointer;background:#0e2133;z-index:3}
+#scene .mini svg{display:block;width:100%;height:100%}
+#scene .mini::after{content:'🗺 크게';position:absolute;right:4px;bottom:3px;font-size:9px;color:#cfd5dc;background:rgba(0,0,0,.5);border-radius:4px;padding:0 4px}
+#mapov{position:fixed;inset:0;z-index:58;background:rgba(5,6,8,.82);display:grid;place-items:center;padding:14px}
+.mapbox{width:min(540px,100%);background:#11141a;border:1px solid #2a303a;border-radius:16px;padding:12px;max-height:94dvh;overflow:auto}
+.maph{display:flex;justify-content:space-between;align-items:center;margin:0 2px 8px}
+.maph b{font-size:15px}.maph button{background:none;border:1px solid #2a303a;border-radius:999px;color:#cfd5dc;padding:3px 10px;cursor:pointer}
+#mapbig svg{display:block;width:100%;height:auto;border-radius:10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:#9aa3ad;margin:10px 2px 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.maptip{margin:10px 0 0;padding:9px 11px;border-left:3px solid #ffb020;background:#161a21;border-radius:4px;font-size:13.5px;line-height:1.55}
+.mapnote{font-size:11px;color:#6c7480;margin:8px 2px 0}
+#mapb{margin-left:auto}
+#snd{margin-left:0!important}
+@keyframes mpulse{0%{r:4;opacity:1}100%{r:16;opacity:0}}
+.mdot{animation:mpulse 1.4s ease-out infinite}
+
+/* 화면 효과 */
+#fxv{position:fixed;inset:0;pointer-events:none;z-index:44}
+#fxv.hurt{animation:hurt .7s ease-out}
+@keyframes hurt{0%{box-shadow:inset 0 0 140px 50px rgba(255,20,20,.65)}100%{box-shadow:inset 0 0 0 0 rgba(255,20,20,0)}}
+body.danger #fxv{animation:dpulse 1.1s ease-in-out infinite}
+@keyframes dpulse{50%{box-shadow:inset 0 0 90px 18px rgba(255,40,40,.38)}}
+body.heart #log,body.heart #scene{animation:hb 1s ease-in-out infinite}
+@keyframes hb{0%,100%{filter:none}12%{filter:brightness(.82) blur(.3px)}24%{filter:none}36%{filter:brightness(.88)}}
+body.alertpulse #fxv{animation:apulse .5s ease-in-out 6}
+@keyframes apulse{50%{box-shadow:inset 0 0 120px 40px rgba(255,30,30,.5)}}
+#scene.shake .bg{animation:flick .7s steps(1) infinite}
+@keyframes flick{0%{filter:none}18%{filter:brightness(.45)}22%{filter:none}61%{filter:brightness(.6)}64%{filter:brightness(1.15)}70%{filter:none}}
+.crack{position:fixed;inset:0;pointer-events:none;z-index:46;animation:crk 2.6s ease-out forwards}
+@keyframes crk{0%,55%{opacity:1}100%{opacity:0}}
+#dust{position:fixed;inset:0;pointer-events:none;z-index:43}
+#scene .wv{position:absolute;left:-10%;right:-10%;bottom:0;height:70%;transform:translateY(105%);z-index:2;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(240,246,252,.95) 18%,#b9cad6 40%,#5d7384 100%)}
+#scene .wv::before{content:'';position:absolute;left:0;right:0;top:10%;height:10px;background:repeating-linear-gradient(90deg,#fff 0 18px,rgba(255,255,255,.4) 18px 30px);filter:blur(1.5px);animation:foam .6s linear infinite}
+@keyframes foam{to{transform:translateX(30px)}}
+#scene.incoming .wv{animation:wvin 3.4s cubic-bezier(.5,0,.9,.6) forwards}
+@keyframes wvin{0%{transform:translateY(105%)}55%{transform:translateY(60%)}100%{transform:translateY(-10%)}}
+#cover{position:fixed;inset:0;z-index:62;pointer-events:none;opacity:0;background:#e9f0f6;transition:opacity 1.2s}
+#cover.on{opacity:1}#cover.dark{background:#000}
+@media (max-width:420px){body.cdon #clock{display:none}}
+</style>
+
+<div id="phone"><div class="ph-frame"><div class="ph-status"><span id="phTime">13:51</span><span class="r"><span class="sig" id="phSig">▂▄▆█</span><span id="phNet">LTE</span><span id="phBat">64%</span><i class="batt" id="phBatI"><u id="phBatU"></u></i></span></div><div class="ph-body" id="phBody"></div></div></div>
+<div id="toast"></div>
+<div id="mapov" hidden><div class="mapbox"><div class="maph"><b>🗺 배곧 개략도</b><button id="mapx">닫기 ✕</button></div><div id="mapbig"></div>
+ <div class="legend"><span><i style="background:#ff4d4f;border-radius:50%"></i>내 위치</span><span><i style="background:#5a5038"></i>갯벌</span><span><i style="background:#2d5a3c"></i>해안 산책로·공원</span><span><i style="background:#1f3a26"></i>옥구산(95m)</span><span><i style="background:rgba(255,59,59,.45)"></i>해일 위험 구역(경보 후)</span></div>
+ <p class="maptip" id="maptip"></p><p class="mapnote">게임용 개략도입니다. 실제 위치·거리·축척과 다릅니다.</p></div></div>
+<div id="fxv"></div><canvas id="dust"></canvas><div id="cover"></div>
+
+<script>
+(function(){
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============ 효과음 (모두 코드로 합성) ============ */
+let NB=null;
+function nb(){const a=ac();if(!NB){const n=a.sampleRate*2;NB=a.createBuffer(1,n,a.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1}return NB}
+function noise(loop){const a=ac(),s=a.createBufferSource();s.buffer=nb();s.loop=!!loop;return s}
+const ok=()=>{const a=ac();return a&&sound?a:null};
+function tone(f,type,dur,vol,when=0,to){const a=ok();if(!a)return;const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+when;o.type=type;o.frequency.setValueAtTime(f,t);if(to)o.frequency.exponentialRampToValueAtTime(to,t+dur);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur+0.02)}
+function nburst(dur,vol,ftype,freq,when=0){const a=ok();if(!a)return;const s=noise(),f=a.createBiquadFilter(),g=a.createGain(),t=a.currentTime+when;f.type=ftype;f.frequency.value=freq;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);s.connect(f).connect(g).connect(a.destination);s.start(t,Math.random());s.stop(t+dur+0.02)}
+const SFX={
+ bell(){[659.3,523.3,587.3,392].forEach((f,i)=>{tone(f,'sine',1.3,0.12,i*0.5);tone(f*2,'sine',0.6,0.03,i*0.5)})},
+ glass(){nburst(0.45,0.5,'highpass',2500);for(let i=0;i<9;i++)tone(2000+Math.random()*4500,'sine',0.08+Math.random()*0.18,0.05,Math.random()*0.5)},
+ crash(){nburst(0.35,0.7,'lowpass',500);tone(90,'sine',0.25,0.3,0,40);nburst(0.2,0.3,'bandpass',1800,0.08)},
+ horn(when=0){[392,494].forEach(f=>tone(f,'square',0.32+Math.random()*0.3,0.025,when))},
+ horns(n=3){for(let i=0;i<n;i++)SFX.horn(i*0.45+Math.random()*0.3)},
+ elev(dur=2.6){const a=ok();if(!a)return;const o=a.createOscillator(),g=a.createGain(),l=a.createOscillator(),lg=a.createGain(),t=a.currentTime;o.type='square';o.frequency.value=1150;l.type='square';l.frequency.value=17;lg.gain.value=0.025;
+  g.gain.value=0.025;l.connect(lg).connect(g.gain);o.connect(g).connect(a.destination);o.start(t);l.start(t);o.stop(t+dur);l.stop(t+dur)},
+ heart(){tone(70,'sine',0.16,0.35,0,38);tone(62,'sine',0.14,0.22,0.24,36)},
+ vib(n=3){for(let i=0;i<n;i++){const a=ok();if(!a)return;const o=a.createOscillator(),f=a.createBiquadFilter(),g=a.createGain(),t=a.currentTime+i*0.22;o.type='sawtooth';o.frequency.value=150;f.type='lowpass';f.frequency.value=380;
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.09,t+0.02);g.gain.setValueAtTime(0.09,t+0.12);g.gain.exponentialRampToValueAtTime(0.0001,t+0.15);o.connect(f).connect(g).connect(a.destination);o.start(t);o.stop(t+0.16)}},
+ key(){nburst(0.025,0.12,'highpass',3000)},
+ ring(){for(let i=0;i<2;i++){tone(440,'sine',1.0,0.05,i*1.6);tone(480,'sine',1.0,0.05,i*1.6)}},
+ fail(){[950,1400,1800].forEach((f,i)=>tone(f,'sine',0.28,0.06,i*0.33))},
+ glug(){for(let i=0;i<12;i++)tone(150+Math.random()*90,'sine',0.14,0.12,i*0.28+Math.random()*0.15,60)},
+ thud(){tone(85,'sine',0.18,0.4,0,45);nburst(0.12,0.35,'lowpass',300)},
+ lowbat(){tone(880,'triangle',0.18,0.07);tone(660,'triangle',0.3,0.07,0.2)},
+ radio(){nburst(0.7,0.12,'bandpass',1600);nburst(0.3,0.1,'bandpass',900,0.8)},
+ mega(){tone(1800,'sine',0.25,0.03);nburst(0.4,0.06,'bandpass',1200,0.1)},
+ roar(dur=4){const a=ok();if(!a)return;const s=noise(true),f=a.createBiquadFilter(),g=a.createGain(),t=a.currentTime;f.type='lowpass';f.frequency.setValueAtTime(120,t);f.frequency.exponentialRampToValueAtTime(1400,t+dur);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.9,t+dur);g.gain.exponentialRampToValueAtTime(0.0001,t+dur+1.2);s.connect(f).connect(g).connect(a.destination);s.start(t);s.stop(t+dur+1.3);
+  try{rumble(dur+1)}catch(e){}},
+};
+window.SFX=SFX;
+
+/* 배경음 */
+let AMB=null,AMBM=null;
+function master(){const a=ac();if(!AMBM){AMBM=a.createGain();AMBM.gain.value=sound?1:0;AMBM.connect(a.destination)}return AMBM}
+function makeAmb(name){
+  const a=ac(),g=a.createGain(),nodes=[],timers=[];g.gain.value=0.0001;g.connect(master());
+  const nf=(type,freq,q,vol)=>{const s=noise(true),f=a.createBiquadFilter(),v=a.createGain();f.type=type;f.frequency.value=freq;if(q)f.Q.value=q;v.gain.value=vol;s.connect(f).connect(v).connect(g);s.start(0,Math.random()*2);nodes.push(s);return v};
+  const lfo=(target,rate,depth)=>{const o=a.createOscillator(),d=a.createGain();o.frequency.value=rate;d.gain.value=depth;o.connect(d).connect(target.gain);o.start();nodes.push(o)};
+  let level=0.05;
+  if(name==='room'){nf('lowpass',160,0,1);level=0.035}
+  if(name==='crowd'||name==='street'){const v1=nf('bandpass',520,0.9,0.8),v2=nf('bandpass',1150,1.4,0.45);lfo(v1,0.35,0.35);lfo(v2,0.53,0.25);level=name==='street'?0.05:0.065;
+    if(name==='street'){const h=()=>{SFX.horn();timers.push(setTimeout(h,1400+Math.random()*2600))};timers.push(setTimeout(h,900))}}
+  if(name==='sea'){const v=nf('lowpass',420,0,0.8);lfo(v,0.09,0.6);nf('highpass',2500,0,0.05);level=0.11}
+  if(name==='under'){nf('lowpass',110,0,1);const d=()=>{tone(900+Math.random()*900,'sine',0.09,0.04);timers.push(setTimeout(d,700+Math.random()*1800))};timers.push(setTimeout(d,500));level=0.05}
+  if(name==='tense'){[55,57.6,110.4].forEach((f,i)=>{const o=a.createOscillator(),v=a.createGain();o.frequency.value=f;v.gain.value=i===2?0.12:0.4;o.connect(v).connect(g);o.start();nodes.push(o)});nf('lowpass',200,0,0.4);level=0.05}
+  g.gain.setTargetAtTime(level,a.currentTime,0.7);
+  return {name,g,stop(){g.gain.setTargetAtTime(0.0001,a.currentTime,0.35);timers.forEach(clearTimeout);setTimeout(()=>nodes.forEach(n=>{try{n.stop()}catch(e){}}),2000)}};
+}
+function setAmb(name){if(!ac())return;if(AMB&&AMB.name===name)return;if(AMB){AMB.stop();AMB=null}if(name)AMB=makeAmb(name)}
+$('#snd').addEventListener('click',()=>{if(AMBM)AMBM.gain.value=sound?1:0});
+
+/* ============ 휴대폰 ============ */
+const PH={open:false,mode:null};
+function sizePhone(){document.documentElement.style.setProperty('--sheetH',(($('#sheet').offsetHeight||0)+10)+'px')}
+new MutationObserver(sizePhone).observe($('#sheet'),{childList:true,subtree:true});addEventListener('resize',sizePhone);
+function phStatus(){
+  $('#phTime').textContent=hms(clockNow()).slice(0,5);$('#phBat').textContent=S.bat+'%';
+  $('#phBatU').style.width=S.bat+'%';$('#phBatI').classList.toggle('low',S.bat<=20);
+  const quake=T(cur?cur.t:'00:00')>=T('13:52:00');
+  $('#phSig').textContent=quake?(S.cd?'▂':'▂▄'):'▂▄▆█';$('#phSig').classList.toggle('weak',quake);$('#phNet').textContent=quake?'LTE':'5G';
+  if(S.loc==='under'){$('#phSig').textContent='✕';$('#phNet').textContent='';}
+}
+function phOpen(mode,html){sizePhone();phStatus();$('#phBody').innerHTML=html;$('#phone').classList.add('on');PH.open=true;PH.mode=mode}
+function phClose(){$('#phone').classList.remove('on');PH.open=false;PH.mode=null}
+$('#phone').addEventListener('click',()=>{if(PH.mode==='lock')phClose()});
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),2600)}
+
+function chatOpen(name,group){
+  const nm=tpl(name);
+  phOpen('chat',`<div class="chat-h"><span class="av">${group?'👥':esc(nm.slice(0,1))}</span><span>${esc(nm)}</span></div><div class="chat-b" id="cb"></div><div class="chat-in"><span>메시지 입력</span><b>보내기</b></div>`);
+  return $('#cb');
+}
+function bubble(box,item,me,group){
+  let who=null,text=item;if(Array.isArray(item)){who=item[0];text=item[1]}
+  text=tpl(text);
+  if(/^\(/.test(text)){const s=document.createElement('div');s.className='sys';s.textContent=text.replace(/[()]/g,'');box.appendChild(s);box.scrollTop=box.scrollHeight;return}
+  if(who&&group&&!me){const w=document.createElement('div');w.className='bw';w.textContent=who;box.appendChild(w)}
+  const b=document.createElement('div');b.className='bb'+(me?' me':'');
+  if(text==='[사진]'){b.className+=' pic';b.style.padding='0';b.innerHTML='<div class="pic">🖼 사진</div>'}else b.textContent=text;
+  box.appendChild(b);box.scrollTop=box.scrollHeight;
+}
+async function typeIn(box,item,me,group){
+  const ty=document.createElement('div');ty.className='typing'+(me?' me':'');ty.innerHTML='<i></i><i></i><i></i>';box.appendChild(ty);box.scrollTop=box.scrollHeight;
+  if(me){for(let i=0;i<4;i++){SFX.key();await sleep(fast?30:110)}}else await sleep(fast?150:620);
+  ty.remove();bubble(box,item,me,group);if(!me){ping();SFX.vib(1);buzz(50)}
+}
+function logChat(name,items,me){
+  const d=document.createElement('div');d.className='chat';d.innerHTML=`<div class="who">💬 ${esc(tpl(name))}</div>`;
+  items.forEach(it=>{const p=document.createElement('p');if(me)p.className='me';p.textContent=Array.isArray(it)?tpl(it[0])+': '+tpl(it[1]):tpl(it);d.appendChild(p)});
+  LOG().appendChild(d);scrollLog();
+}
+
+/* 재난문자 → 잠금화면 */
+window.notify=notify=async function(n){
+  n=V(n);if(!n)return;const tsu=n.kind==='tsunami',t=hms(clockNow()).slice(0,5);
+  phOpen('lock',`<div class="lock${tsu?' tsu':''}"><div class="lk-time">${t}</div><div class="lk-date">11월 4일 수요일</div>
+   <div class="acard"><h5><span>⚠ 긴급재난문자</span><span>지금</span></h5><p>${esc(n.body)}</p></div>${tsu?'<div class="lk-tsu">🌊 지진해일 경보</div>':'<div class="lk-hint">탭하여 닫기</div>'}</div>`);
+  $('#flash').classList.remove('on');void $('#flash').offsetWidth;$('#flash').classList.add('on');
+  siren(tsu?2.6:1.8,tsu);SFX.vib(tsu?5:3);buzz(tsu?[400,150,400,150,800]:[300,120,300]);
+  if(tsu){$('#sbg').classList.add('alert');document.body.classList.add('alertpulse');setTimeout(()=>document.body.classList.remove('alertpulse'),3200)}
+  const d=document.createElement('div');d.className='sms'+(tsu?' tsu':'');d.innerHTML=`<b>긴급재난문자 ${t}</b>`;d.appendChild(document.createTextNode(n.body));LOG().appendChild(d);scrollLog();
+  await sleep(fast?900:2900);phClose();await sleep(250);
+};
+/* 메시지 → 메신저 화면 (선택할 때까지 열어 둠) */
+window.chat=chat=async function(m){
+  m=V(m);if(!m)return;const box=chatOpen(m.from,m.group);
+  for(const it of m.body)await typeIn(box,it,false,m.group);
+  logChat(m.from,m.body);
+};
+
+/* 선택 직전 휴대폰 연출 */
+const strip=t=>{t=tpl(V(t));const m=t.match(/「([^」]*)」/);return m?m[1]:t};
+async function phoneAct(sc,c){
+  if(c.sms){const s=V(c.sms);const box=chatOpen(s.to,s.group);await typeIn(box,s.mine||strip(c.t),true);
+    const rd=document.createElement('div');rd.className='rd';rd.textContent='1';box.appendChild(rd);
+    for(const r of s.rep||[]){await sleep(fast?100:700);rd.remove();await typeIn(box,r,false,s.group)}
+    await sleep(fast?300:1100);phClose();return}
+  if(c.reply&&PH.open&&PH.mode==='chat'){const box=$('#cb');await typeIn(box,strip(c.t),true);const rd=document.createElement('div');rd.className='rd';rd.textContent='1';box.appendChild(rd);await sleep(fast?300:900);phClose();return}
+  if(c.call){const cl=V(c.call),o=typeof cl==='string'?{name:cl}:cl;
+    phOpen('call',`<div class="call${o.video?' video':''}"><div class="av">${esc(o.name.slice(0,1))}</div><div class="nm">${esc(o.name)}</div><div class="stt" id="cst">${o.video?'영상통화 연결 중…':'연결 중…'}</div>${o.times?`<div class="stt">${o.times}번째 시도</div>`:''}<div class="hang">📞</div></div>`);
+    SFX.ring();await sleep(fast?900:3000);const st=$('#cst');if(o.ok){if(st){st.textContent='연결됨 00:04';st.style.color='#8fe3bd'}ping();await sleep(fast?400:1400);phClose();return}if(st){st.textContent='연결할 수 없습니다';st.classList.add('fail')}SFX.fail();await sleep(fast?400:1300);phClose();return}
+  if(c.group){const g=V(c.group);const box=chatOpen(g.name||'1학년 3반 (31)',true);
+    if(g.mine)await typeIn(box,g.mine,true);for(const it of g.msgs)await typeIn(box,it,false,true);await sleep(fast?300:1000);phClose();return}
+  if(PH.open)phClose();
+}
+const _pick=pick;
+window.pick=pick=async function(sc,c){
+  clearInterval(ctimer);$('#sheet').innerHTML='';
+  await phoneAct(sc,c);
+  if(c.efx)EFX[c.efx]();if(c.sfx)SFX[c.sfx]();
+  return _pick(sc,c);
+};
+
+/* 배터리·체력·침착 반응 */
+const _apply=apply;
+window.apply=apply=function(fx){
+  const d=_apply(fx);
+  if(d.hp<0){EFX.hurt();SFX.thud()}
+  if(S.bat<=20&&!S.f._b20){S.f._b20=1;setTimeout(()=>{toast('🔋 배터리 20% 남음 — 아껴 써야 한다');SFX.lowbat()},600)}
+  if(S.bat<=10&&!S.f._b10){S.f._b10=1;setTimeout(()=>{toast('🪫 배터리 10% — 곧 꺼진다');SFX.lowbat()},600)}
+  if(PH.open)phStatus();
+  return d;
+};
+
+/* ============ 화면 효과 ============ */
+const EFX={
+ hurt(){const v=$('#fxv');v.classList.remove('hurt');void v.offsetWidth;v.classList.add('hurt')},
+ crack(){const W=innerWidth,H=innerHeight,x=W*(0.25+Math.random()*0.5),y=H*(0.2+Math.random()*0.35);let p='';
+  for(let i=0;i<16;i++){let a=Math.random()*Math.PI*2,cx=x,cy=y,len=60+Math.random()*Math.max(W,H)*0.5,segs=4+Math.floor(Math.random()*4);p+=`M${cx},${cy}`;
+   for(let s=0;s<segs;s++){a+=(Math.random()-0.5)*0.6;cx+=Math.cos(a)*len/segs;cy+=Math.sin(a)*len/segs;p+=` L${cx.toFixed(1)},${cy.toFixed(1)}`;
+    if(Math.random()<0.35){const b=a+(Math.random()-0.5)*1.6,bl=20+Math.random()*50;p+=` M${(cx+Math.cos(b)*bl).toFixed(1)},${(cy+Math.sin(b)*bl).toFixed(1)} L${cx.toFixed(1)},${cy.toFixed(1)}`}}}
+  for(let r=1;r<=2;r++){let q='';for(let i=0;i<=10;i++){const a=i/10*Math.PI*2,rr=r*18+Math.random()*10;q+=(i?' L':'M')+(x+Math.cos(a)*rr).toFixed(1)+','+(y+Math.sin(a)*rr).toFixed(1)}p+=' '+q}
+  const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('class','crack');s.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  s.innerHTML=`<path d="${p}" fill="none" stroke="rgba(235,245,255,.85)" stroke-width="1.3" stroke-linecap="round"/><path d="${p}" fill="none" stroke="rgba(0,0,0,.5)" stroke-width="3" opacity=".35"/>`;
+  document.body.appendChild(s);setTimeout(()=>s.remove(),2700)},
+ glass(){EFX.crack();SFX.glass()},
+ dust(dur=6500){const c=$('#dust'),x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
+  const ps=Array.from({length:90},()=>({x:Math.random()*c.width,y:Math.random()*c.height*0.6-c.height*0.2,r:0.6+Math.random()*2.2,v:0.15+Math.random()*0.5,s:Math.random()*6,a:0.15+Math.random()*0.35}));
+  const t0=performance.now();const f=now=>{const el=now-t0;x.clearRect(0,0,c.width,c.height);const fade=el<500?el/500:el>dur-1500?Math.max(0,(dur-el)/1500):1;
+   for(const p of ps){p.y+=p.v;p.x+=Math.sin((el/900)+p.s)*0.3;x.fillStyle=`rgba(205,195,175,${p.a*fade})`;x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fill()}
+   if(el<dur)requestAnimationFrame(f);else x.clearRect(0,0,c.width,c.height)};requestAnimationFrame(f)},
+};
+window.EFX=EFX;
+
+/* 위험 맥박 · 심장 박동 */
+setInterval(()=>{
+  const playing=!$('#play').hidden;
+  document.body.classList.toggle('danger',playing&&S.cd&&remain()<300);
+  document.body.classList.toggle('cdon',playing&&!!S.cd);
+  const h=playing&&S.calm<30;document.body.classList.toggle('heart',h);if(h)SFX.heart();
+},1000);
+
+/* ============ 미니맵 ============ */
+const POS={school:[238,112],yard:[229,121],road:[212,104],walk:[232,102],under:[226,92],apt3:[238,112],dwalk:[204,132],dpark:[186,150],okgu:[158,156],apt:[176,58],sib:[200,122],park:[139,88],offgo:[130,102],off:[122,110],mall:[106,140],shore:[132,95]};
+const WPOS={apt3:'apt3',okgu:'okgu',sib:'sib',apt:'apt',off:'off',shop:'apt',mall:'mall',mallroof:'mall'};
+const LOCOF=id=>(SC[id]&&V(SC[id].loc))||((/^c4_|^over_s/.test(id))?WPOS[S.f.where||'apt3']:null)||(['c3_A_msg','c3_A_fake'].includes(id)?(S.f.okgu?'okgu':'apt3'):null)||({c2_roll:'yard',c2_roll2:'yard',c2_liq:'yard',c2_after:'yard',c2_contact:'yard',c2_move:'yard',c2_walk:'yard',c2_end:'yard',c3_alert:'yard',c3_up:'yard',c3_dojun:'yard',c3_A_carry:'school',c3_A_elev:'school',c3_A_hall:'school',c3_A_end:'school',c3_D1:'dwalk',c3_D2:'dpark',c3_D_end:'okgu',
+  c3_B1:'road',c3_B2:'apt',end_aptA:'apt',end_aptB:'apt',end_shop:'apt',end_sib:'sib',c3_C1:'park',c3_C2:'offgo',end_off:'off',end_offLate:'off',end_mall:'mall',over_beach:'shore'}[id]||'school');
+const COAST='M198,-4 L150,62 L122,104 L92,146 L64,168 Q42,178 50,193 L46,224';
+function mapSVG(small,tide){
+  const [px,py]=POS[S.loc||'school'];const lb=(x,y,t,o='',c='#cfd5dc',fs=9)=>small?'':`<text x="${x}" y="${y}" ${o} fill="${c}" font-size="${fs}" font-weight="700" paint-order="stroke" stroke="#0b0d11" stroke-width="3">${t}</text>`;
+  const bld=(x,y,w,h,c='#3a4252')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5" fill="${c}"/>`;
+  const apts=(x0,y0,n,m)=>{let r='';for(let i=0;i<n;i++)for(let j=0;j<m;j++)r+=bld(x0+i*9+j*3,y0+j*9-i*3,6,5,'#465064');return r};
+  return `<svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard Variable,system-ui,sans-serif">
+  <rect width="320" height="220" fill="#0e2133"/>
+  ${small?'':'<g stroke="#16304a" fill="none"><path d="M0,40 Q30,34 60,40 T120,38"/><path d="M0,120 Q20,114 40,120"/></g>'}
+  <path class="tide" d="${COAST}" fill="none" stroke="#5a5038" stroke-width="${tide*2}" stroke-linejoin="round" style="transition:stroke-width 2.5s ease"/>
+  <ellipse cx="40" cy="204" rx="6" ry="4" fill="#2a3a2c"/>
+  <path d="${COAST} L330,224 L330,-4 Z" fill="#1b2028"/>
+  <g stroke="#2a313c" stroke-width="2.5" fill="none"><path d="M214,-4 L168,64 L140,107 L110,150 L84,172 L74,224"/><path d="M176,72 L300,142"/><path d="M140,122 L232,178"/><path d="M214,26 L162,108"/><path d="M262,40 L204,140"/></g>
+  <path d="M206,-4 L158,63 L130,105 L100,147 L72,170 Q56,180 60,195 L57,224" stroke="#2d5a3c" stroke-width="5" fill="none" opacity=".85"/>
+  <path d="M206,-4 L158,63 L130,105 L100,147 L72,170 Q56,180 60,195 L57,224" stroke="#8fd1a5" stroke-width="1" stroke-dasharray="3 3" fill="none" opacity=".7"/>
+  <path d="M150,224 L320,52" stroke="#6b5a2a" stroke-width="5" fill="none"/>
+  <ellipse cx="54" cy="184" rx="9" ry="12" fill="#2d5a3c"/>
+  <ellipse cx="152" cy="160" rx="30" ry="22" fill="#1f3a26"/><ellipse cx="152" cy="160" rx="19" ry="13" fill="none" stroke="#2f5536"/><ellipse cx="152" cy="160" rx="8" ry="5" fill="none" stroke="#3c6a44"/>
+  <rect x="183" y="144" width="18" height="11" rx="5" fill="none" stroke="#7a3b30" stroke-width="2"/>
+  ${S.cd?`<path d="${COAST}" fill="none" stroke="#ff3b3b" stroke-width="44" opacity=".22" stroke-linejoin="round"/>`:''}
+  ${S.flood?`<path d="${COAST}" fill="none" stroke="#7a6440" stroke-width="${30+S.flood*50}" opacity=".6" stroke-linejoin="round"/>`:''}
+  <rect x="218" y="12" width="64" height="36" rx="3" fill="#233026"/>${bld(232,20,12,8,'#3a4a3c')}${bld(254,26,14,8,'#3a4a3c')}
+  ${apts(160,52,3,3)}${apts(184,72,3,3)}${apts(218,86,3,2)}${apts(184,108,2,2)}
+  ${bld(231,105,16,10,'#5a6680')}${bld(220,116,15,10,'#2c3a2e')}${bld(252,92,12,8,'#5a6680')}
+  ${bld(194,116,14,9,'#5a6680')}${bld(116,104,12,10,'#566074')}${bld(100,134,14,10)}
+  ${apts(276,110,3,3)}
+  ${S.loc==='road'&&!small?`<g stroke="#ffb020" stroke-dasharray="4 3" fill="none"><path d="M222,132 L176,58"/><path d="M222,132 L200,122"/></g>`:''}
+  ${lb(250,112,'배곧해솔중','','#fff')}${lb(266,96,'해솔초','','#9aa3ad',7)}
+  ${lb(150,48,'우리 아파트')}${lb(212,80,'백두비발디 3차','','#cfd5dc',7)}${lb(210,128,'지우네 초교')}${lb(80,102,'지식산업센터')}${lb(76,152,'상가')}${lb(226,10,'서울대 시흥캠퍼스','','#9aa3ad',8)}
+  ${lb(136,164,'옥구산 95m','','#8fd1a5')}${lb(186,168,'옥구공원','','#8fd1a5',8)}${lb(30,170,'한울공원','','#8fd1a5',8)}${lb(24,214,'덕섬','','#9aa3ad',7)}
+  ${lb(88,64,'해안 산책로','transform="rotate(-55 88 64)"','#8fd1a5',8)}${lb(292,90,'고가도로','transform="rotate(-45 292 90)"','#9a8a5a',7)}
+  ${lb(24,40,'서해')}${lb(40,14,'↑ 바다 건너 송도')}${lb(2,200,'↙ 오이도')}
+  
+  <circle class="mdot" cx="${px}" cy="${py}" r="4" fill="none" stroke="#ff4d4f" stroke-width="2"/>
+  <circle cx="${px}" cy="${py}" r="${small?6:5}" fill="#ff4d4f" stroke="#fff" stroke-width="1.5"/>
+  ${small?'':`<text x="316" y="216" text-anchor="end" fill="#5d6570" font-size="7">개략도 · 실제 축척 아님</text>`}
+  </svg>`;
+}
+const TIDE=id=>{const sc=SC[id];if(id==='c2_walk'||id==='c2_end')return 22;if(sc&&sc.ch>=3)return 30;return 8};
+function drawMini(id){
+  let m=$('#scene .mini');if(!m){m=document.createElement('div');m.className='mini';m.onclick=openMap;$('#scene').appendChild(m)}
+  const prev=S.tide||8,next=TIDE(id);S.tide=next;
+  m.innerHTML=mapSVG(true,prev);if(prev!==next)requestAnimationFrame(()=>requestAnimationFrame(()=>{const t=m.querySelector('.tide');if(t)t.setAttribute('stroke-width',next*2)}));
+}
+const TIPS={1:'흔들릴 때는 튼튼한 책상 아래에서 다리를 꼭 잡는다. 흔들림이 멈추면 문을 열어 출구를 확보한다.',
+ 2:'건물 밖에서는 유리·외벽·담장·가로등에서 떨어진 넓은 곳으로. 엘리베이터는 타지 않는다.',
+ 5:'침수 뒤 길: 물웅덩이(맨홀·감전)와 늘어진 전선은 멀리. 보호자 인계는 선생님을 통해서. 점검 전 건물엔 들어가지 않고, 가스 냄새가 나면 아무것도 켜지 말고 밖으로.',
+ 4:'물이 빠져도 끝난 게 아니다. 경보가 해제될 때까지 높은 곳에. 물에 빠진 사람은 직접 들어가지 말고 119에 정확한 위치를.',
+ 3:'지진해일 경보: 바다에서 멀리, 높이. 언덕(옥구산)이 멀면 튼튼한 건물 3층 이상으로 수직 대피. 해안 접근 금지.'};
+function openMap(){$('#mapbig').innerHTML=mapSVG(false,S.tide||8);$('#maptip').textContent='📌 지금 할 일 — '+(TIPS[curCh]||TIPS[1]);$('#mapov').hidden=false}
+$('#mapx').onclick=()=>$('#mapov').hidden=true;$('#mapov').addEventListener('click',e=>{if(e.target.id==='mapov')$('#mapov').hidden=true});
+const mb=document.createElement('button');mb.className='snd';mb.id='mapb';mb.textContent='🗺';mb.setAttribute('aria-label','지도 보기');mb.onclick=openMap;$('#snd').before(mb);
+setInterval(()=>{const cd=!$('#cd').hidden;mb.style.marginLeft=cd?'0':'auto'},500);
+
+/* ============ 장면 훅 ============ */
+const AMBOF=id=>{const sc=SC[id];if(!sc)return null;if(sc.amb)return sc.amb;
+  if(['c3_C1','over_beach','c3_D_end'].includes(id))return 'sea';
+  if(['c3_alert','c3_up','c3_dojun','c3_B1','c3_C2'].includes(id))return 'street';
+  if(['c3_D1','c3_D2'].includes(id))return 'crowd';
+  if(sc.ch===3)return 'tense';
+  if(['stairs','gate','yard','hall'].includes(sc.bg)&&sc.ch===2)return 'crowd';
+  return 'room'};
+const ENTER={
+ c1_open:()=>{if(S.f.glass)setTimeout(()=>EFX.glass(),1500)},
+ c1_stop:()=>{EFX.dust()},c2_stairs:()=>{EFX.dust(5000)},c2_after:()=>{setTimeout(()=>EFX.dust(4000),400)},
+ c1_end:()=>{setTimeout(()=>SFX.bell(),200)},
+ c2_liq:()=>{setTimeout(()=>SFX.glug(),600)},
+ c3_out:()=>{setTimeout(()=>SFX.horns(4),3200)},c3_up:()=>{SFX.mega()},c3_B1:()=>{SFX.horns(5)},c2_move:()=>{SFX.mega()},
+ c3_A_elev:()=>{SFX.elev(2)},c2_end:()=>{SFX.radio()},c3_alert:()=>{setTimeout(()=>SFX.horns(4),3200)},
+};
+const _go=go;
+window.go=go=async function(id){
+  if(PH.open)phClose();
+  S.loc=LOCOF(id);drawMini(id);setAmb(AMBOF(id));
+  $('#scene').classList.remove('incoming');
+  if(ENTER[id])ENTER[id]();
+  return _go(id);
+};
+
+/* 선택지별 효과 지정 */
+const C=(id,i)=>SC[id].choices[i];
+C('c1_stop',2).call='엄마';
+C('c1_bag',2).group={msgs:[['준호','배곧 지금 뭐임??'],['예린','우리 아파트 엘베 멈췄대'],['(알 수 없음)','시화방조제 무너졌다는데']]};
+C('c1_hayun',2).sfx='crash';
+C('c2_elev',1).sfx='elev';
+C('c2_gate',1).efx='glass';
+C('c2_roll',2).call='이민재';
+C('c2_roll',3).sms={to:'이민재',mine:'어디야? 다들 운동장',rep:['화장실 문 안열림 4층']};
+C('c2_liq',2).group={mine:'배곧 운동장 땅에서 물 나옴 ㄷㄷ',msgs:[['준호','헐 무너지는 거 아님?'],['예린','다 대피해']]};
+C('c2_after',1).sfx='crash';
+C('c2_contact',2).call={name:'엄마',times:5};
+C('c2_contact',3).sms={to:'엄마',mine:'나 학교 운동장 괜찮아. 지우도 학교에 있대'};
+C('c3_A_msg',1).call={name:'엄마',video:true};
+SC.c3_A_fake.msg={from:'1학년 3반 (31)',group:true,body:[['준호','배곧대교 무너짐 실화냐'],['준호','[사진]'],['예린','ㄹㅇ?? 어디서 봄'],['도준','와 미쳤다']]};
+SC.c3_A_fake.lines=['반 단톡방. 읽지 않은 메시지 214개.'];
+C('c3_A_fake',1).group={msgs:[['준호','[사진]'],['(사진 확대)','흐릿한 다리 사진. 화질이 이상하다.']]};
+C('c3_A_fake',2).sms={to:'우리 가족 (3)',group:true,mine:'[사진]',rep:[['엄마','이거 진짜야?? 너 다리 근처야??']]};
+SC.c3_C1.choices[2].sfx='key';
+
+/* ============ 마지막 장면: 해일이 다가온다 ============ */
+async function climax(kind){
+  $('#sheet').innerHTML='';if(PH.open)phClose();
+  const cv=$('#cover');cv.classList.toggle('dark',kind!=='wave');
+  if(kind==='wave'){$('#scene').classList.add('incoming');SFX.roar(3.6);buzz([200,100,200,100,600]);await sleep(3000)}else{await sleep(600)}
+  cv.classList.add('on');await sleep(1300);setAmb(null);
+}
+const _finish=finish,_over=gameOver,_show=showResult;
+window.finish=finish=async function(e){await climax('wave');_finish(e);setTimeout(()=>$('#cover').classList.remove('on'),100)};
+window.gameOver=gameOver=async function(o){await climax((cur&&cur.wave)||cur===SC.over_beach?'wave':'faint');_over(o);setTimeout(()=>$('#cover').classList.remove('on'),100)};
+window.showResult=showResult=function(h){setAmb(null);phClose();['danger','heart','cdon','quake'].forEach(c=>document.body.classList.remove(c));$('#mapov').hidden=true;_show(h)};
+const _start=start;
+window.start=start=function(){phClose();S.tide=8;$('#scene').classList.remove('incoming');$('#cover').classList.remove('on');_start()};
+})();
+</script>
+
+
+<!-- ===================== 4장: 물이 들어온다 ===================== -->
+<style>
+#scene .fl{position:absolute;left:0;right:0;bottom:0;height:0;z-index:1;pointer-events:none;transition:height 2.5s ease;
+  background:linear-gradient(180deg,rgba(150,126,84,.88),rgba(96,80,52,.94))}
+#scene .fl::before{content:'';position:absolute;left:-40px;right:-40px;top:-5px;height:10px;
+  background:radial-gradient(ellipse 20px 6px at 20px 6px,rgba(170,150,110,.95) 98%,transparent) 0 0/40px 10px repeat-x;animation:flw 1.6s linear infinite}
+@keyframes flw{to{transform:translateX(40px)}}
+</style>
+<script>
+(function(){
+/* 3장 마지막 장면 → 4장으로 이어지게 */
+const W={c3_A_end:'apt3',c3_D_end:'okgu',end_sib:'sib',end_aptA:'apt',end_aptB:'apt',end_shop:'shop',end_off:'off',end_offLate:'off',end_mall:'mall'};
+for(const id in W){const sc=SC[id];delete sc.end;sc.next='c4_wave';const e=sc.enter;sc.enter=()=>{S.f.where=W[id];if(e)e()}}
+
+const WH=()=>S.f.where||'apt3';
+const HIGH=()=>!['shop','mall'].includes(WH());
+const PLACE={apt3:'본관 4층 복도',okgu:'옥구산 중턱 전망 데크',sib:'지우네 초등학교 3층',apt:'우리 아파트 계단',off:'지식산업센터 위층',shop:'아파트 1층 편의점',mall:'해안 상가 2층',mallroof:'해안 상가 옥상'};
+const BG={apt3:'hall',okgu:'sea',sib:'hall',apt:'apt',off:'apt',shop:'apt',mall:'apt',mallroof:'road'};
+const place=()=>PLACE[WH()],bg=()=>BG[WH()];
+const win=()=>WH()==='okgu'?'데크 난간':'창가';
+const buddy=()=>WH()==='sib'?'지우':'하윤';
+
+Object.assign(SC,{
+c4_wave:{ch:4,t:'14:27:00',place,icon:'🌊',bg,water:0.35,flood:1,amb:'sea',shake:true,shakeLen:3,
+ enter:()=>{S.cd=false;$('#scene').classList.add('incoming');SFX.roar(3.5);buzz([300,100,300,100,900]);setTimeout(()=>$('#scene').classList.remove('incoming'),4200)},
+ lines:[()=>({
+  apt3:['쿠르르르릉—','소리가 먼저 오고, 그다음에 물이 온다.','복도 창문 아래, 학교 앞 도로로 흙탕물이 밀려든다. 걷는 속도가 아니다. 달리는 차보다 빠르다.','주차된 차들이 장난감처럼 밀려 서로 부딪친다.','그리고 물이, 조금 전까지 우리가 줄 서 있던 운동장을 한꺼번에 덮는다.','누군가 입을 막는다. 아무도 말하지 않는다.'],
+  okgu:['쿠르르르릉—','하얀 줄이 갯벌을 집어삼키며 다가온다. 생각보다 빠르다.','해안 산책로가 사라진다. 해안도로 위로 물이 넘친다.','지식산업센터 건물들 사이로 흙탕물이 밀려 들어간다. 차들이 떠밀린다.','물은 멈추지 않는다. 백두비발디 쪽 도로까지 회색으로 덮인다.','조금 전까지 우리가 줄 서 있던 학교 운동장도 갈색으로 덮인다.'],
+  sib:['쿠르르르릉—','지우가 내 팔을 꽉 붙잡는다.','복도 창문 아래, 학교 앞 도로로 흙탕물이 밀려든다.','운동장이 순식간에 갈색으로 덮인다. 조금 전까지 아이들이 줄 서 있던 곳이다.'],
+  apt:['쿠르르르릉—','계단참 창문 너머, 단지 입구로 물이 밀려든다.','1층 공동현관 유리문이 물살에 깨지는 소리가 계단을 타고 올라온다.','아래층에서 비명. 누군가 계단을 뛰어 올라온다.'],
+  off:['쿠르르르릉—','창문 바로 아래, 방금 서 있던 산책로가 사라진다.','해안도로 위로 물이 넘쳐 건물 1층을 친다. 건물 전체가 웅— 울린다.',...(S.f.dsafe?['도준이 휴대폰을 떨어뜨린다. 주울 생각도 못 한다.']:[])],
+  shop:['쿠르르르릉—','편의점 유리문 밖으로 흙탕물이 밀려온다.','유리문이 버티지 못한다. 쩍— 금이 간다.','발목, 그리고 무릎. 물이 얼음처럼 차갑다.'],
+  mall:['쿠르르르릉—','상가 계단 아래로 물이 밀려든다. 1층 유리가 터지는 소리.','물이 계단을 한 칸씩 집어삼키며 올라온다.'],
+ })[WH()]],
+ next:()=>WH()==='shop'?'c4_shop':WH()==='mall'?'c4_mall':'c4_watch'},
+
+/* 저층 탈출 */
+c4_shop:{ch:4,t:'14:27:40',place:'아파트 1층 편의점',icon:'🏪',bg:'apt',water:0.55,flood:1,amb:'sea',lines:['물이 무릎까지 찼다. 진열대가 흔들린다.','계산대 뒤에 「직원 전용」 뒷문이 보인다. 아파트 상가 복도로 이어지는 문이다.'],
+ timer:4,def:1,choices:[
+ {t:'뒷문으로 나가 아파트 비상계단으로',r:['뒷문은 상가 복도로 이어진다. 물살을 거슬러 비상계단 문을 연다.','허벅지까지 찬 물을 헤치고 계단을 오른다. 3층. 4층.'],fx:{hp:-15},set:{where:'apt'},go:'c4_watch',
+  ok:['1층에 갇히자 가장 가까운 계단으로 바로 올라갔다','물이 들어오면 무조건 위로. 물살이 아직 약할 때 바로 움직여야 한다.']},
+ {t:'계산대 위로 올라간다',r:['계산대 위. 물이 무릎, 허리…','천장까지 남은 높이가 줄어든다.'],go:'c4_shop2'},
+ {t:'유리문을 밀고 밖으로 나간다',r:'문을 미는 순간, 물살이 문을 통째로 밀어 넣는다.',go:'over_shop'}]},
+c4_shop2:{ch:4,t:'14:28:30',place:'아파트 1층 편의점',icon:'🏪',bg:'apt',water:0.8,flood:1,amb:'sea',lines:['물이 계속 오른다. 냉장고 불빛이 꺼진다.','뒷문 쪽 물살은 아까보다 약해졌다. 지금이 마지막이다.'],
+ timer:4,def:1,choices:[
+ {t:'지금, 물을 헤치고 뒷문 비상계단으로',r:['물이 가슴까지 온다. 진열대를 붙잡고 한 걸음씩.','비상계단 난간을 잡는 순간 다리가 풀린다. 그래도 올라간다.'],fx:{hp:-25},set:{where:'apt'},go:'c4_watch',
+  ok:['물이 차오르는 1층에서 마지막 기회에 빠져나왔다','저층에서 버티는 건 답이 아니다. 조금이라도 높은 곳으로 이어지는 길을 찾는다.']},
+ {t:'여기서 버틴다',r:'물이 턱까지 차오른다.',go:'over_shop'}]},
+over_shop:{ch:4,t:'14:29:00',place:'아파트 1층 편의점',icon:'🌊',bg:'apt',water:1,wave:true,lines:['차가운 물이 모든 소리를 덮는다.'],
+ over:{title:'1층에 갇혔다',text:['지진해일 때 1층과 지하는 가장 먼저 잠긴다.','지붕이 있다고 안전한 곳이 아니다. 경보가 울리면 처음부터 높은 곳으로 가야 했다.','갇혔다면, 물살이 약할 때 바로 위층으로 이어지는 계단을 찾는다.']}},
+
+c4_mall:{ch:4,t:'14:27:40',place:'해안 상가 2층',icon:'🏬',bg:'apt',water:0.5,flood:1,amb:'sea',lines:['물이 1층을 삼키고 2층 계단 맨 위 칸을 핥는다.','복도 끝에 「비상구 · 옥상」 표시가 보인다.'],
+ timer:5,def:1,choices:[
+ {t:'복도 끝 비상계단으로 옥상까지 올라간다',r:['옥상 문을 밀고 나온다. 바람이 세다.','난간 아래, 상가 앞 도로가 바다가 되어 있다.'],set:{where:'mallroof'},go:'c4_watch',
+  ok:['2층에서 멈추지 않고 옥상까지 올라갔다','물이 올라오는 게 보이면 한 층이라도 더 높이. 옥상이 있으면 옥상으로.']},
+ {t:'학원 안으로 들어가 문을 잠근다',r:['물이 문틈으로 스며든다. 결국 비상계단으로 뛰어 올라간다.','문턱에 정강이를 찧는다.'],fx:{hp:-10},set:{where:'mallroof'},go:'c4_watch',
+  no:['물이 차오르는데 방 안에 숨었다','문을 잠가도 물은 들어온다. 갇히지 말고 위로.']},
+ {t:'계단 아래를 내려다보며 영상을 찍는다',r:'한 칸 아래까지 올라온 물에 발이 젖는다. 깜짝 놀라 옥상으로 뛰어 올라간다.',fx:{hp:-5,bat:-3},set:{where:'mallroof',wet:1},go:'c4_watch',
+  no:['물이 올라오는데 영상을 찍었다','몇 초가 생사를 가른다. 촬영보다 이동이 먼저다.']}]},
+
+/* 공통 */
+c4_watch:{ch:4,t:'14:30:00',place,icon:'🌊',bg,water:0.45,flood:1,amb:'sea',lines:[
+ '물은 한 번에 오지 않는다. 밀고, 또 밀고, 또 민다.','떠밀려 온 나뭇가지, 쓰레기통, 자전거가 물 위에서 빙빙 돈다.',
+ ()=>WH()==='okgu'?'산 아래 동네 불빛이 한꺼번에 꺼진다.':'전기가 나간다. 비상등만 남는다.',
+ ()=>`${buddy()}가 내 소매를 붙잡는다. 손이 떨린다.`],
+ choices:[
+ {t:()=>`${win()}에서 떨어져 안쪽에 앉는다`,r:'벽에 등을 붙인다. 바닥의 차가움이 등으로 올라온다.',fx:{calm:5},
+  ok:['물이 들어오는 동안 창가에서 떨어져 있었다','떠밀려 온 것들이 부딪쳐 유리가 깨질 수 있다. 높은 곳에서도 창가에서 떨어진다.']},
+ {t:'영상을 찍는다',r:'화면 속 물은 실제보다 작아 보인다. 손이 떨려 초점이 맞지 않는다.',fx:{bat:-6},
+  no:['고립 중에 배터리를 영상에 썼다','고립이 길어지면 휴대폰은 연락과 구조 요청의 생명줄이다.']},
+ {t:()=>`${buddy()} 손을 잡고 "괜찮아. 여긴 높아."라고 말해 준다`,r:()=>`${buddy()}가 고개를 끄덕인다. 손의 떨림이 조금 줄어든다.`,fx:{trust:10,calm:5},
+  ok:['무서워하는 사람 곁을 지켰다','재난 때 짧고 차분한 한마디가 서로의 판단력을 지켜 준다.']}],
+ next:'c4_recede'},
+
+c4_recede:{ch:4,t:'14:36:00',place,icon:'↩️',bg,water:0.12,flood:0.5,amb:'tense',lines:[
+ '물이 빠지기 시작한다.','들어올 때보다 더 빠르다. 도로 위 물이 바다 쪽으로 거꾸로 쏟아져 나간다. 차, 나무, 간판이 함께 끌려간다.',
+ '10분쯤 지나자 도로 바닥이 드러난다. 진흙과 부서진 것들.','누군가 말한다. "끝났다. 끝났어!"',
+ ()=>({apt3:'학교로 대피해 온 동네 아저씨 한 명이 계단으로 내려가려 한다. "학교 앞에 차 있어. 빼야 돼."',apt:'계단 아래로 주민 아저씨 한 명이 내려가려 한다. "지하주차장에 차 있어. 빼야 돼."',
+   okgu:'데크 위 아저씨 몇 명이 산길을 내려가기 시작한다. "집에 가 봐야지."',sib:'지우네 반 아이 하나가 "엄마한테 갈래!" 하며 계단으로 뛰어간다. 그 뒤를 아저씨 한 명이 따라 내려간다.',
+   off:'건물 관리인 아저씨가 1층 상황을 보겠다며 계단을 내려가려 한다.',mallroof:'옥상에 같이 올라온 가게 사장님이 "가게 봐야 돼"라며 계단 문을 연다.'})[WH()]||'누군가 계단을 내려가려 한다.',
+ ()=>S.f.dsafe?'도준이 일어선다. "야, 이제 내려가도 되는 거 아냐?"':null],
+ timer:6,def:3,choices:[
+ {t:'"아직 안 끝났어요! 해일은 여러 번 와요!" 크게 외치고 붙잡는다',r:['아저씨가 멈칫한다. 선생님이 곧바로 거든다. "경보 아직 안 풀렸습니다! 다음 물결이 더 클 수 있어요!"','아저씨가 계단에 주저앉는다.'],fx:{trust:10},set:{stopped:1},
+  ok:['물이 빠졌을 때 내려가려는 사람을 막았다','지진해일은 여러 번 밀려오고, 첫 물결이 가장 크지 않을 수 있다. 경보가 해제될 때까지 높은 곳에 머문다.']},
+ {t:'선생님께 알린다',r:'선생님이 계단으로 달려가 아저씨를 부른다. 아저씨는 이미 두 층 아래다.',fx:{trust:5},set:{half:1}},
+ {t:'나도 같이 내려가 본다',r:'계단을 내려간다. 2층, 1층.',go:'c4_down',
+  no:['물이 빠지자 아래로 내려갔다','첫 물결 뒤 물이 빠질 때가 가장 위험하다. 다음 물결이 더 크게 올 수 있다.']},
+ {t:'그냥 지켜본다',r:'아저씨가 계단 아래로 사라진다.',set:{gone:1}}],
+ next:'c4_second'},
+
+c4_down:{ch:4,t:'14:44:00',place:()=>WH()==='okgu'?'옥구공원 입구':'1층 현관',icon:'⚠️',bg:'road',water:0.06,flood:0.5,amb:'tense',lines:[
+ ()=>WH()==='okgu'?'산길을 내려와 공원 입구. 트랙이 진흙밭이다.':'1층 현관은 진흙밭이다. 물이 발목까지 남아 있다.',
+ '그때, 바다 쪽에서 소리가 다시 온다. 아까보다 크다.'],
+ timer:3,def:1,choices:[
+ {t:()=>WH()==='okgu'?'뒤돌아 산길로 전력 질주':'뒤돌아 계단으로 전력 질주',r:()=>WH()==='okgu'?['돌계단을 두 칸씩 뛴다. 등 뒤에서 물소리가 쫓아온다.','중턱 데크에서 돌아보니, 방금 서 있던 입구가 물에 잠겼다.']:['계단을 세 칸씩 뛴다. 등 뒤에서 현관 유리가 터진다.','3층 계단참에서 돌아보니, 방금 서 있던 곳이 물에 잠겼다.'],fx:{hp:-15,calm:-15},go:'c4_second'},
+ {t:'밖을 내다본다',r:'회색 벽이 길 끝에서 일어선다.',go:'over_second'}]},
+over_second:{ch:4,t:'14:48:00',place:'1층',icon:'🌊',bg:'road',water:1,wave:true,lines:['소리가 모든 것을 덮는다.'],
+ over:{title:'두 번째 물결',text:['물이 빠지는 건 끝이 아니다.','지진해일은 몇 번이고 다시 밀려온다. 첫 물결보다 다음 물결이 더 클 수 있다.','경보가 해제될 때까지, 높은 곳에서 내려오지 않는다.']}},
+
+c4_second:{ch:4,t:'14:48:00',place,icon:'🌊',bg,water:0.6,flood:1.4,amb:'sea',
+ enter:()=>{$('#scene').classList.add('incoming');SFX.roar(3);buzz([300,100,700]);setTimeout(()=>$('#scene').classList.remove('incoming'),4000)},
+ lines:['14시 48분. 두 번째 물결.',
+ ()=>WH()==='okgu'?'첫 번째보다 높다. 공원 입구 트랙까지 물이 차오른다. 방금 사람들이 내려가던 길이다.':'첫 번째보다 높다. 물이 2층 창문 높이까지 올라온다.',
+ ()=>S.f.stopped?'계단에 주저앉아 있던 아저씨가 얼굴을 감싼다. "내가… 저기 있을 뻔했어."':'물 위로 사람 하나가 보인다. 아까 내려간 사람이다. 가로등을 붙잡고 있다.'],
+ next:()=>S.f.stopped?'c4_wait':'c4_rescue'},
+
+c4_rescue:{ch:4,t:'14:49:00',place,icon:'🆘',bg,water:0.6,flood:1.4,amb:'sea',lines:[
+ '가로등에 매달린 사람이 소리친다. 물살이 몸을 끌어당긴다.','누군가 창문을 열고 금방이라도 뛰어내릴 것처럼 몸을 내민다.'],
+ timer:7,def:2,choices:[
+ {t:'119에 전화해 정확한 위치를 말한다',call:()=>({name:'119',ok:true}),r:['"어디입니까?"','"배곧, 지금 있는 건물 바로 앞 가로등이요! 한 명 매달려 있어요!"','"위치 확인했습니다. 구조대 이동 중입니다. 절대 물에 들어가지 마세요."'],fx:{trust:10},set:{saved:1},
+  ok:['물에 빠진 사람을 보고 119에 정확한 위치를 알렸다','물에 빠진 사람을 직접 구하러 들어가면 함께 위험해진다. 신고하고, 큰 소리로 알리고, 던질 것을 찾는다.']},
+ {t:'"뛰어내리면 안 돼요!" 몸을 내민 사람을 붙잡는다',r:'그 사람의 팔을 잡아당긴다. 둘 다 바닥에 주저앉는다.',fx:{trust:10},set:{saved:1},
+  ok:['구하러 물에 뛰어들려는 사람을 막았다','물살 속으로 들어가면 구조할 사람이 둘이 된다.']},
+ {t:'소화전 호스를 끌어와 던진다',r:['호스를 창밖으로 던진다. 닿지 않는다.','그래도 그 사람이 그걸 보고 고개를 든다. 버틴다.'],fx:{calm:5},set:{saved:1},
+  ok:['직접 들어가지 않고 던질 것을 찾았다','줄, 튜브, 빈 페트병처럼 물에 뜨거나 붙잡을 수 있는 것을 던진다.']},
+ {t:'아래로 내려가 손을 뻗어 본다',r:['계단을 뛰어 내려가 물가에 선다. 물살이 다리를 휘감는다.','선생님이 뒤에서 허리를 끌어당긴다. "너까지 휩쓸리면 안 돼!"'],fx:{hp:-20,trust:-5},
+  no:['구하러 물 가까이 내려갔다','흐르는 물은 무릎 높이만 돼도 사람을 넘어뜨린다. 구조는 구조대에게.']}],
+ next:'c4_wait'},
+
+c4_wait:{ch:4,t:'15:05:00',place,icon:'🕯️',bg,water:0.3,flood:0.8,amb:'tense',lines:[
+ ()=>S.f.stopped?null:(S.f.saved?'15시 02분. 고무보트 한 척이 물살을 헤치고 와서 가로등의 사람을 끌어 올린다. 복도에서 박수가 터진다.':'15시 02분. 고무보트 한 척이 가로등의 사람을 끌어 올린다. 아무도 박수를 치지 못한다.'),
+ '물은 빠졌다 들어왔다를 반복한다. 조금씩 약해진다.','전기도, 수돗물도 끊겼다. 해가 기울기 시작한다. 바람이 차다.',
+ ()=>S.f.wet?'젖은 신발 속 발가락이 감각이 없다.':null],
+ notif:{kind:'alert',body:'[기상청] 15:04 지진해일 경보 유지. 추가 해일이 예상됩니다. 해안·저지대 접근 금지. 높은 곳에서 대기하십시오.'},
+ choices:[
+ {t:'화면 밝기를 낮추고 비행기 모드로 배터리를 아낀다',r:'배터리 숫자가 천천히 줄어든다. 꼭 필요할 때만 켠다.',fx:{calm:5},set:{saver:1},
+  ok:['고립됐을 때 휴대폰 배터리를 아꼈다','밝기 낮추기·비행기 모드·앱 끄기. 구조 요청과 가족 연락에 쓸 배터리를 남긴다.']},
+ {t:'손전등을 켜서 주변을 비춘다',r:'불빛 덕에 조금 덜 무섭다. 배터리 숫자가 눈에 띄게 줄어든다.',fx:{bat:-8,calm:5}},
+ {t:'젖은 양말을 벗고 가방 속 겉옷으로 발을 감싼다',cond:()=>S.f.wet&&S.f.bag,r:'발이 조금씩 따뜻해진다. 가방을 챙기길 잘했다.',fx:{hp:10},
+  ok:['젖은 옷을 벗고 몸을 덮었다','젖은 채로 있으면 체온이 빠르게 떨어진다. 가방 속 겉옷 하나가 큰 차이를 만든다.']},
+ {t:'젖은 신발을 그대로 신고 버틴다',cond:()=>S.f.wet&&!S.f.bag,r:'이가 딱딱 부딪친다. 다리에 힘이 빠진다.',fx:{hp:-10}}],
+ next:'c4_rumor'},
+
+c4_rumor:{ch:4,t:'15:12:00',place,icon:'💬',bg,water:0.2,flood:0.7,amb:'tense',lines:['휴대폰을 잠깐 켠다. 반 단톡방이 불타고 있다.'],
+ msg:{from:'1학년 3반 (31)',group:true,body:[['준호','3차 해일 10분 뒤에 온대 50m래'],['(알 수 없음)','시화방조제 진짜 터짐 시흥 다 잠긴대'],['예린','진짜야?? 우리 어디로 가야 돼'],['예린','누가 대답 좀']]},
+ choices:[
+ {t:'「재난문자랑 선생님 말만 믿자. 지금 있는 곳에 있어」',reply:true,r:'「ㅇㅋ…」「맞아 우리 쌤도 그럼」 몇 명이 답한다.',fx:{calm:5,trust:5},
+  ok:['단톡방 소문 대신 공식 안내를 따르자고 했다','"몇 m" "몇 분 뒤" 같은 출처 없는 숫자는 대부분 소문이다. 재난문자와 현장 안내를 따른다.']},
+ {t:'겁이 나서 "더 높은 데로 가요!" 하고 일어선다',r:'선생님이 내 어깨를 잡는다. "여기면 충분해. 지금 움직이는 게 더 위험해."',fx:{calm:-10}},
+ {t:'가족 단톡방에 그대로 전달한다',sms:{to:'우리 가족 (3)',group:true,mine:'3차 해일 10분 뒤에 온대 50m래',rep:[['엄마','뭐??? 너 어디야 지금']]},r:'엄마가 더 불안해졌다.',fx:{trust:-5,bat:-1},
+  no:['소문을 가족에게 퍼뜨렸다','확인되지 않은 숫자는 가족을 엉뚱하게 움직이게 한다.']}],
+ next:()=>(S.f.dmiss||S.f.two)?'c4_lost':'c4_end'},
+
+c4_lost:{ch:4,t:'15:15:00',place,icon:'📱',bg,water:0.2,flood:0.7,amb:'tense',lines:['휴대폰이 짧게 떤다. 모르는 번호가 아니다.'],
+ msg:()=>({from:S.f.dmiss?'최도준':'정태민',body:['살려줘','해안 상가 2층','물 계단까지 왔었어 지금은 빠짐','폰 3%']}),
+ choices:[
+ {t:'선생님에게 보여 주고 119에 위치를 알린다',r:['선생님이 바로 119에 전화한다. "해안 상가 2층, 중학생. 휴대폰 배터리 거의 없음."','「구조대 간대. 움직이지 말고 위층에 있어」 답장을 보낸다.','잠시 뒤, 「ㅇㅇ」'],fx:{trust:15},set:{lostSaved:1},
+  ok:['연락이 끊긴 친구의 위치를 어른과 119에 알렸다','구조 요청은 "누가 / 어디 / 몇 명 / 상태"로 짧고 정확하게.']},
+ {t:'「기다려 내가 갈게」',reply:true,r:'계단으로 가려다 선생님 손에 붙잡힌다. "너까지 고립되면 안 돼. 위치는 구조대에 알렸어."',fx:{trust:-5},
+  no:['고립된 친구를 직접 구하러 가려 했다','길 위에는 아직 물과 잔해가 있다. 구조는 위치를 알려 구조대에게 맡긴다.']},
+ {t:'「거기 있어. 높은 데 있어」만 보낸다',reply:true,r:'「ㅇㅇ」 그 뒤로 답이 없다. 배터리가 꺼진 것 같다.',fx:{calm:-5}}],
+ next:'c4_end'},
+
+c4_end:{ch:4,t:'15:24:00',place,icon:'📉',bg,water:0.1,flood:0.5,amb:'tense',notifFirst:true,
+ notif:{kind:'alert',body:'[기상청] 15:22 지진해일 경보를 주의보로 하향. 해안 접근 금지는 유지됩니다. 귀가는 현장 안내에 따르십시오.'},
+ lines:['누군가의 한숨이 길게 번진다.','선생님이 일어서서 말한다. "아직 내려가지 않는다. 길이 확인되면 보호자께 한 명씩 인계한다. 보호자께는 학교에서 문자로 안내하고 있어."','휴대폰이 진동한다.'],
+ msg:()=>S.f.mom?{from:'엄마',body:['주의보로 바뀌었대','엄마 지금 차 타고 너 데리러 가','배곧 들어가는 길 어디로 가면 돼?']}:{from:'엄마',body:['(부재중 전화 12통)','제발 어디야','엄마 지금 차 타고 배곧으로 가']},
+ choices:[
+ {t:'「엄마 오지 마. 도로 다 물에 잠겼어. 선생님이 안내해 준대. 거기서 기다려」',reply:true,r:'한참 뒤 답장. 「알았어. 차 세웠어. 꼭 선생님 옆에 있어」',fx:{calm:10},set:{momWait:1},
+  ok:['가족이 침수된 길로 오지 않게 막았다','물에 잠긴 도로는 30cm만 돼도 차가 떠밀릴 수 있다. 마중 나오는 가족도 위험해진다. 학교와 대피소의 인계 안내를 따른다.']},
+ {t:'「학교 앞으로 와!」',reply:true,r:'「지금 출발」 숫자 1이 사라진다. 엄마의 차가, 진흙 덮인 배곧으로 들어온다.',set:{momCome:1},
+  no:['가족을 침수된 지역으로 불렀다','경보가 주의보로 내려가도 길은 아직 위험하다. 인계 장소와 시간은 학교 안내를 따른다.']},
+ {t:'답하지 않고 배터리를 아낀다',r:'화면을 끈다. 엄마는 계속 오고 있을 것이다.',fx:{calm:-5}}],
+ next:'c4_fin'},
+
+c4_fin:{ch:4,t:'15:30:00',place,icon:'🌇',bg,water:0.08,flood:0.4,amb:'tense',lines:['해가 바다 쪽으로 기운다. 바다는 여전히 보이지 않는다.','대신 진흙 냄새가 모든 곳에 배어 있다.','살았다. 그런데 이제부터가 시작이다.'],
+ end:()=>({loc:place(),teaser:'5장. 재회 — '+(S.f.momCome?'엄마의 차는 진흙 덮인 도로 어디쯤에 있을까. ':S.f.momWait?'엄마는 약속대로 기다리고 있을까. ':'')+'지우는? 잔해로 덮인 배곧을 지나, 금이 간 우리 집으로.'})},
+});
+
+/* 물 높이 · 지도 침수 */
+function setWater(l){let f=$('#scene .fl');if(!f){f=document.createElement('div');f.className='fl';$('#scene').appendChild(f)}f.style.height=Math.round(l*100)+'%'}
+const _g=go;
+window.go=go=async function(id){const sc=SC[id];setWater(sc?(V(sc.water)||0):0);S.flood=sc&&sc.flood||0;if(id==='c4_wave')S.delay=0;return _g(id)};
+})();
+</script>
+
+
+<!-- ===================== 5장: 재회 ===================== -->
+<script>
+(function(){
+const c4=SC.c4_fin;delete c4.end;c4.next='c5_down';
+const WH=()=>S.f.where||'apt3';
+const WL=()=>({apt3:'apt3',okgu:'okgu',sib:'sib',apt:'apt',off:'off',shop:'apt',mall:'mall',mallroof:'mall'})[WH()];
+const GYM='배곧해솔중 체육관 (임시 인계 장소)';
+const withSib=()=>S.f.sibgo&&WH()==='sib';
+
+Object.assign(SC,{
+c5_down:{ch:5,t:'15:40:00',place:'진흙 덮인 길',loc:WL,icon:'🚧',bg:'road',water:0.04,flood:0.3,amb:'tense',lines:[
+ ()=>({okgu:'박 선생님이 소방관과 무전을 주고받는다. "옥구공원 쪽 길 확인됐습니다. 내려갑니다."',apt3:'"1층 물 빠졌다. 내려간다. 한 줄로, 앞사람 발자국만 밟아."',sib:'지우네 선생님이 아이들을 두 줄로 세운다. 나도 지우 손을 잡고 맨 뒤에 선다.'})[WH()]||'구조대원이 계단 위로 올라온다. "이제 내려갑니다. 제 뒤로만 오세요."',
+ '세상이 갈색이다. 도로 위에 진흙이 발목까지 쌓여 있고, 차들이 엉뚱한 방향으로 서로 기대 서 있다.',
+ '가로등 하나가 기울어, 끊어진 전선이 흙탕물 웅덩이 위로 늘어져 있다.','웅덩이 옆 맨홀 뚜껑 자리가 비어 있다. 물이 작게 소용돌이친다.'],
+ timer:6,def:2,choices:[
+ {t:'웅덩이와 전선을 크게 돌아서 간다',r:'진흙에 신발이 빠질 듯하다. 그래도 마른 쪽 보도 끝을 따라 걷는다.',fx:{calm:5},
+  ok:['끊어진 전선과 물웅덩이를 멀리 돌아갔다','침수 뒤 물웅덩이에는 감전 위험과 뚜껑 빠진 맨홀이 숨어 있다. 고인 물은 밟지 않고, 늘어진 전선은 멀리 피한다.']},
+ {t:'"전선 있어요! 웅덩이 밟지 마세요!" 뒤에 외치고 돌아간다',r:'뒤따르던 아이들과 주민들이 하나둘 길을 바꾼다. 박 선생님이 고개를 끄덕인다.',fx:{trust:10},
+  ok:['위험을 뒤따르는 사람들에게 알렸다','내가 본 위험은 뒤에 오는 사람에겐 안 보일 수 있다. 짧고 크게 알린다.']},
+ {t:'지름길로 웅덩이를 첨벙첨벙 건넌다',r:['발밑이 갑자기 꺼진다. 맨홀 구멍이다. 박 선생님이 가방끈을 붙잡아 끌어 올린다.','정강이가 쓸려 피가 난다. 흙탕물이 상처에 스민다.'],fx:{hp:-20},set:{wet:1,wound:1},
+  no:['물웅덩이를 그냥 건넜다','흙탕물 아래는 보이지 않는다. 맨홀·구멍·날카로운 잔해·감전. 오염된 물이 상처에 닿으면 감염 위험도 있다.']}],
+ next:'c5_gym'},
+
+c5_gym:{ch:5,t:'16:10:00',place:GYM,loc:'school',icon:'🏫',bg:'hall',water:0,flood:0.3,amb:'crowd',lines:[
+ '학교 1층 복도 벽에 진흙 줄이 그어져 있다. 물이 여기까지 왔었다.','2층 체육관. 담요, 생수 상자, 구급함. 보건 선생님이 아이들 상처를 하나씩 본다.',
+ '무대 위 화이트보드에 「보호자 인계 — 반·이름 확인 후 담임 서명」이라고 크게 적혀 있다.',
+ ()=>S.f.wound?'보건 선생님이 내 정강이를 보고 얼굴을 찡그린다. "흙탕물 닿았지? 꼭 소독해야 돼."':null,
+ ()=>S.f.hayunHurt?'하윤 이마에 거즈가 붙는다. 하윤이 오늘 처음으로 웃는다.':null],
+ choices:[
+ {t:'보건 선생님께 다친 곳을 보여 준다',cond:()=>S.f.wound||S.hp<80,r:'상처를 깨끗한 물로 씻고 소독한다. 따끔하다.',fx:{hp:10},
+  ok:['다친 곳을 바로 치료받았다','침수된 물은 오염돼 있다. 작은 상처도 깨끗이 씻고 소독해야 감염을 막는다.']},
+ {t:'하윤 옆에 담요를 덮고 앉는다',r:'하윤이 내 어깨에 머리를 기댄다. 둘 다 말이 없다.',fx:{trust:5,calm:5}},
+ {t:'생수와 빵 나르는 걸 돕는다',r:'상자를 나르는 동안은 무섭다는 생각이 덜 난다.',fx:{trust:10},
+  ok:['대피소에서 일손을 도왔다','할 수 있는 작은 일을 찾으면 불안도 줄어든다. 다만 무거운 잔해 정리 같은 위험한 일은 어른에게.']}],
+ next:'c5_stranger'},
+
+c5_stranger:{ch:5,t:'16:30:00',place:GYM,loc:'school',icon:'🚪',bg:'hall',flood:0.3,amb:'crowd',lines:[
+ '체육관 입구가 붐빈다. 보호자들이 하나둘 들어온다. 누가 이름을 부를 때마다 고개가 돌아간다.',
+ '처음 보는 아저씨 한 명이 다가온다.','"네가 {name}이지? 엄마 친구야. 엄마가 못 온대서 내가 데리러 왔어. 차 밖에 있어. 가자."','아저씨가 엄마 이름을 안다.'],
+ timer:7,def:2,choices:[
+ {t:'"선생님 통해서 갈게요." 박 선생님에게 데려간다',r:['박 선생님이 명단을 본다. "보호자 명단에 없으시네요. 어머님께 먼저 확인하겠습니다."','아저씨가 머뭇거린다. "아… 그럼 됐어요." 그리고 사람들 사이로 사라진다.'],fx:{trust:5},
+  ok:['인계 절차 없이 어른을 따라가지 않았다','재난의 혼란 속에서도 보호자 인계는 담임 확인을 거친다. 아는 척하는 사람이라도 선생님과 보호자에게 먼저 확인한다.']},
+ {t:'엄마에게 문자로 먼저 확인한다',sms:{to:'엄마',mine:'엄마 친구라는 아저씨가 데리러 왔대. 엄마가 보낸 거야?',rep:['아니!! 엄마 아무한테도 부탁 안 했어','선생님 옆에 꼭 붙어 있어']},r:'고개를 들어 보니 아저씨는 이미 없다. 박 선생님에게 바로 말한다.',fx:{trust:5},
+  ok:['따라가기 전에 보호자에게 먼저 확인했다','엄마 이름을 안다고 엄마가 보낸 사람은 아니다. 확인은 언제나 보호자와 선생님에게.']},
+ {t:'"네…" 하고 따라 나선다',r:['체육관 문을 나서는데 박 선생님이 뛰어온다. "{name}! 어디 가!"','아저씨가 손을 놓고 빠르게 사라진다. 박 선생님 얼굴이 하얗게 질려 있다.'],fx:{calm:-15,trust:-5},
+  no:['확인 없이 처음 보는 어른을 따라 나섰다','재난 때는 혼란을 틈타는 사람도 있다. 보호자 인계는 반드시 선생님을 통해서.']}],
+ next:'c5_sib'},
+
+c5_sib:{ch:5,t:'16:45:00',place:GYM,loc:'school',icon:'🧒',bg:'hall',flood:0.3,amb:'crowd',
+ lines:[()=>withSib()?['지우가 내 옆에서 꾸벅꾸벅 존다. 지우네 선생님이 박 선생님께 전화해 지우가 나와 함께 있다고 알려 두었다.','지우 손등에 매직으로 이름과 엄마 번호가 적혀 있다. 지우네 선생님이 써 준 거다.']
+   :['박 선생님이 휴대폰을 내민다. 지우네 학교 선생님이다.','"지우 {sib} 맞지? 지우는 학교 3층에 있다가 지금 체육관에서 보호자 기다리고 있어. 다친 데 없어."','수화기 너머로 지우 목소리. "{sib}…"']],
+ choices:[
+ {t:'지우 손을 꼭 잡고 담요를 덮어 준다',cond:withSib,r:'지우가 잠결에 내 손가락을 쥔다.',fx:{calm:10}},
+ {t:'"지우야, 선생님 옆에 있어. 엄마랑 같이 데리러 갈게."',cond:()=>!withSib(),r:'"…응." 지우가 코를 훌쩍인다.',fx:{calm:10},set:{jiwooOk:1},
+  ok:['동생에게 그 자리에 있으라고 했다','아이는 인계 절차대로 보호자가 데려간다. 가족이 제각각 움직이면 서로 엇갈린다.']},
+ {t:'"내가 지금 갈게!"',cond:()=>!withSib(),r:'"안 돼. 길에 아직 전선이랑 물웅덩이투성이야. 보호자분이 오셔야 해." 지우네 선생님이 단호하다.',fx:{calm:-5},
+  no:['동생을 혼자 데리러 가려 했다','아이 인계는 보호자에게. 아이가 아이를 데리러 길에 나서면 둘 다 위험해진다.']},
+ {t:'엄마에게 지우 위치를 문자로 전한다',cond:()=>!withSib(),sms:{to:'엄마',mine:'지우 학교 체육관에서 기다린대. 안 다쳤대. 나는 해솔중 체육관',rep:['고마워. 엄마가 너 먼저 데리고 같이 지우한테 가자']},r:'엄마에게 숫자 1이 사라진다.',set:{jiwooOk:1},
+  ok:['가족에게 동생 위치를 정확히 전했다','가족이 흩어졌을 때 "누가 / 어디에 / 누구와"를 서로 공유하면 엇갈리지 않는다.']}],
+ next:()=>S.f.momCome?'c5_car':'c5_reunion'},
+
+c5_car:{ch:5,t:'17:05:00',place:GYM,loc:'school',icon:'🚗',bg:'hall',flood:0.3,amb:'tense',lines:['휴대폰이 연달아 떤다. 엄마다.'],
+ msg:{from:'엄마',body:['차가 멈췄어','배곧 들어오는 길','물이 바퀴 위까지 와','문이 안 열려']},
+ timer:9,def:2,choices:[
+ {t:'「창문 열고 나와! 안 열리면 머리받침 빼서 옆 유리 모서리 깨!」',reply:true,r:['…','2분 뒤. 「나왔어」','「차 지붕 위야 소방차 보여」'],fx:{calm:10,trust:5},set:{momSafe:1},
+  ok:['엄마에게 차량 침수 탈출법을 알렸다','바퀴 절반 이상 잠기면 차를 두고 높은 곳으로. 문이 안 열리면 창문을 열거나, 머리받침 철제 다리로 옆 유리 모서리를 깬다. 안팎 물 높이가 비슷해지면 문도 열린다.']},
+ {t:'119에 엄마 차 위치를 신고한다',call:{name:'119',ok:true},r:['"배곧 들어오는 도로, 침수된 차 안에 한 명 있어요!"','"위치 확인했습니다. 문이 안 열리면 창문으로 나오라고 전해 주세요."','엄마에게 그대로 전한다. 5분 뒤, 「나왔어 소방관이 끌어줬어」'],fx:{calm:5,trust:5},set:{momSafe:1},
+  ok:['가족의 위급 상황을 119에 정확히 신고했다','"어디 / 몇 명 / 어떤 상황". 그리고 구조대의 안내를 그대로 전한다.']},
+ {t:'「엄마 어떡해 어떡해」',reply:true,r:['손이 떨려 다른 말이 안 써진다.','10분 뒤, 「소방관이 꺼내줬어 괜찮아」 한참을 운다.'],fx:{calm:-20}}],
+ next:'c5_reunion'},
+
+c5_reunion:{ch:5,t:'17:40:00',place:GYM,loc:'school',icon:'🫂',bg:'hall',flood:0.25,amb:'crowd',lines:[
+ ()=>S.f.momCome?['체육관 문이 열리고, 엄마가 들어온다. 바지가 허리까지 젖어 있다. 신발 한 짝이 없다.','엄마가 나를 본다. 그리고 그 자리에 주저앉는다.']
+  :S.f.momWait?['17시 40분. 소방차가 길을 연 뒤, 보호자들이 걸어서 들어오기 시작한다.','엄마다. 약속대로 기다리다 안내를 받고 걸어왔다. 바지 끝만 진흙이다.','엄마가 뛰어온다.']
+  :['체육관 문이 열리고, 엄마가 들어온다. 머리가 헝클어져 있다. 내 얼굴을 보자마자 소리 내 운다.','"왜 답을 안 했어… 왜…"'],
+ ()=>withSib()?'엄마가 나와 지우를 한꺼번에 끌어안는다.':S.f.jiwooOk?'"지우는 체육관에 있대. 이따 같이 가자." 엄마가 내 머리를 쓸어 넘긴다.':'"지우는? 지우는 어디 있어?" 엄마 목소리가 갈라진다. 박 선생님이 지우네 학교에 전화를 걸어 준다. "지우는 체육관에서 기다리고 있습니다. 다친 데 없습니다."',
+ '박 선생님이 명단에 엄마 서명을 받는다. "{name}, 오늘 정말 잘 버텼다."'],
+ choices:[
+ {t:'엄마를 꽉 안는다',r:'엄마 옷에서 바다 냄새가 난다. 엄마 심장이 아직도 빨리 뛴다.',fx:{calm:15}},
+ {t:'"엄마, 나 잘했지?" 웃어 보인다',r:'엄마가 웃다가, 다시 운다. "응. 정말 잘했어."',fx:{calm:10,trust:5}}],
+ next:'c5_home'},
+
+c5_home:{ch:5,t:'18:00:00',place:'우리 아파트 앞',loc:'apt',icon:'🏚️',bg:'apt',water:0.03,flood:0.25,amb:'tense',lines:[
+ ()=>withSib()?'엄마와 나, 그리고 지우. 셋이 진흙 길을 걷는다.':'지우네 학교에 들러 지우를 데리고, 셋이 진흙 길을 걷는다.',
+ '우리 아파트. 1층 공동현관 유리가 깨져 있고, 로비에 진흙이 무릎 높이까지 쌓였다.','외벽에 대각선으로 금이 가 있다.',
+ '현관에 관리사무소 안내문. 「안전 점검 전까지 출입을 자제해 주십시오. 엘리베이터 운행 중지. 가스 냄새가 나면 즉시 신고」',
+ '엄마가 계단 쪽을 본다. "약이랑 옷만 가지고 나오자. 금방이야."'],
+ choices:[
+ {t:'"엄마, 점검 전엔 들어가지 말래. 대피소로 가자."',r:['엄마가 한참 계단을 본다. 그리고 고개를 끄덕인다.','"…그래. 물건은 다시 사면 돼."'],fx:{trust:5},go:'c5_shelter',
+  ok:['안전 점검 전에 집에 들어가지 않았다','큰 지진·침수 뒤 건물은 겉보기보다 약해져 있을 수 있고, 여진도 온다. 점검 전에는 들어가지 않는다.']},
+ {t:'같이 올라간다',r:'진흙을 밟고 계단으로 들어간다.',go:'c5_inside',
+  no:['점검 전 금 간 건물에 들어갔다','큰 지진·침수 뒤 건물은 겉보기보다 약해져 있을 수 있고, 여진도 온다. 점검 전에는 들어가지 않는다.']},
+ {t:'"나 혼자 빨리 갔다 올게."',r:'"절대 안 돼." 엄마가 내 손목을 잡는다. 결국 같이 올라간다.',go:'c5_inside',
+  no:['혼자 금 간 건물에 들어가려 했다','점검 전 건물에 혼자 들어가면 갇혀도 아무도 모른다.']}]},
+
+c5_inside:{ch:5,t:'18:10:00',place:'우리 아파트 계단 3층',loc:'apt',icon:'⚠️',bg:'stairs',flood:0.25,amb:'room',shake:true,shakeLen:3,lines:[
+ '계단을 오른다. 3층 복도에 들어서자 코를 찌르는 냄새.','썩은 달걀 같은, 가스 냄새다.','그때, 발밑이 다시 흔들린다. 여진이다. 천장에서 하얀 가루가 떨어진다.'],
+ timer:6,def:2,choices:[
+ {t:'"가스야! 아무것도 켜지 말고 나가!" 엄마 손을 잡고 내려간다',r:['1층으로 내려와 관리사무소에 가스 냄새를 알린다. 경비 아저씨가 바로 가스 회사에 전화한다.','밖에 나와서야 숨을 쉰다.'],fx:{calm:5},
+  ok:['가스 냄새가 나자 아무것도 켜지 않고 밖으로 나가 신고했다','가스 냄새가 나면 전기 스위치·라이터·초인종처럼 불꽃이 날 수 있는 것은 건드리지 않는다. 문을 열어 두고 밖으로 나가 신고한다.']},
+ {t:'어두워서 계단 전등 스위치를 눌러 본다',r:['딸깍. 전기가 끊겨 있어 아무 일도 일어나지 않는다.','엄마가 내 손을 낚아챈다. "가스 냄새 나는데 뭘 눌러!" 둘이 뛰어 내려간다.'],fx:{calm:-10},
+  no:['가스 냄새가 나는데 스위치를 눌렀다','스위치를 누를 때 생기는 작은 불꽃이 새어 나온 가스에 불을 붙일 수 있다.']},
+ {t:'숨을 참고 그대로 계단을 오른다',r:['10층쯤에서 또 여진. 계단 난간을 붙잡는다. 벽의 금이 눈앞에서 길어진다.','엄마가 울면서 내 팔을 끌고 내려간다.'],fx:{hp:-15,calm:-10},
+  no:['가스 냄새와 여진 속에서 계속 올라갔다','물건보다 사람이 먼저다. 위험 신호(냄새·금·여진)가 하나라도 있으면 바로 나온다.']}],
+ next:'c5_shelter'},
+
+c5_shelter:{ch:5,t:'18:30:00',place:'학교 체육관 대피소',loc:'school',icon:'🛏️',bg:'hall',flood:0.25,amb:'crowd',lines:[
+ '다시 학교 체육관. 이번엔 가족과 함께다.','시청 직원이 명단을 받고 담요와 생수, 컵라면을 나눠 준다. 체육관 바닥에 매트가 줄지어 깔린다.',
+ ()=>S.f.dsafe?'저쪽에서 도준이 자기 엄마한테 등짝을 맞고 있다. 나를 보고 씩 웃는다.'
+  :S.f.lostSaved?'체육관 문이 열리고, 담요를 두른 도준이 들어온다. 해안 상가에서 구조됐다. 눈이 마주친다. 아무 말 없이 고개를 끄덕인다.'
+  :(S.f.dmiss||S.f.two)?'도준의 자리는 아직 비어 있다. 박 선생님이 계속 휴대폰을 들여다본다.':null],
+ next:()=>S.f.seo?'c5_seo':'c5_rest'},
+
+c5_seo:{ch:5,t:'18:35:00',place:'학교 체육관 대피소',loc:'school',icon:'💬',bg:'hall',flood:0.25,amb:'crowd',lines:['휴대폰이 짧게 떤다. 서유다.'],
+ msg:()=>({from:'서유',body:S.f.guilt?['엘리베이터 타자고 한 거 너였지','안에서 진짜 무서웠어','행정실 선생님이 계속 말 걸어줘서 버텼어']:['엘리베이터 타자고 한 거 너였지','진짜 무서웠어','근데 내 발목 다친 거 선생님한테 말해준 거 너라며']}),
+ choices:[
+ {t:'「미안해. 내가 잘못 생각했어. 진짜 미안해」',reply:true,r:['한참 뒤 답장.','「…다음엔 계단으로 같이 가」'],fx:{trust:15,calm:5},
+  ok:['내 실수를 인정하고 사과했다','재난 때 잘못된 판단은 누구나 할 수 있다. 인정하고 사과하는 것도 회복의 시작이다.']},
+ {t:'「그땐 그게 맞는 줄 알았어」',reply:true,r:'「ㅇㅇ」 그 뒤로 답이 없다.',fx:{trust:-5}},
+ {t:'답하지 않는다',r:'화면을 끈다. 마음 한쪽이 무겁다.',fx:{trust:-10,calm:-5}}],
+ next:'c5_rest'},
+
+c5_rest:{ch:5,t:'18:40:00',place:'학교 체육관 대피소',loc:'school',icon:'🛏️',bg:'hall',flood:0.25,amb:'crowd',lines:['매트 위에 담요를 깐다. 엄마와 지우가 양옆에 눕는다.'],
+ choices:[
+ {t:'박 선생님께 "고맙습니다"라고 말하러 간다',r:'박 선생님이 오늘 처음으로 웃는다. "너도 잘했어. 진짜 잘했어."',fx:{trust:10,calm:5}},
+ {t:'엄마와 지우 사이에 눕는다',r:'지우가 금세 잠든다. 엄마 손이 내 등을 천천히 쓸어내린다.',fx:{calm:10}},
+ {t:'충전기 앞 줄에 선다',r:'줄이 길다. 서른 명쯤. 한 사람에 10분씩.',fx:{bat:5}}],
+ next:'c5_fin'},
+
+c5_fin:{ch:5,t:'18:50:00',place:'학교 체육관 대피소',loc:'school',icon:'🌙',bg:'hall',flood:0.25,amb:'room',lines:[
+ '체육관 불빛이 깜빡인다. 밖에서 비상 발전기 돌아가는 소리.','휴대폰 배터리 {bat}%.','창밖이 어두워진다. 바다는 여전히 보이지 않는다.','오늘 밤도, 땅은 또 흔들릴 것이다.'],
+ end:()=>({when:'18:50, 대피소에서',loc:'학교 체육관 대피소 (가족과 함께)',teaser:'6장. 첫날 밤 — 충전기 한 대와 긴 줄, 화장실 앞 어둠, 새벽의 여진, 그리고 "내일 집에 갈 수 있을까".'})},
+});
+})();
+</script>
+
+</body>
+</html>
